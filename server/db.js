@@ -232,7 +232,7 @@ const initialData = {
       year: null,
       capacity: "5 طن",
       status: "متاحة",
-      currentLocation: "جراج شبرا",
+      currentLocation: "جراج سوهاج",
       odometer: 0,
       fuelType: "سولار",
       fuelTankCapacity: 120,

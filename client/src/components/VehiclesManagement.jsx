@@ -465,6 +465,7 @@ export default function VehiclesManagement({
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
                   >
                     <option value="جراج شبرا">جراج شبرا</option>
+                    <option value="جراج سوهاج">جراج سوهاج</option>
                     <option value="المخزن الرئيسي بالتجمع">المخزن الرئيسي بالتجمع</option>
                     <option value="مخزن الغربية (القرشية)">مخزن الغربية (القرشية)</option>
                     <option value="مخزن المنيا الجديدة (المستقبل)">مخزن المنيا الجديدة (المستقبل)</option>
