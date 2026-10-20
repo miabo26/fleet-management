@@ -208,6 +208,8 @@ export default function VehiclesManagement({
                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                       : veh.status === 'في مأمورية'
                       ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                      : veh.status === 'سائق بإجازة'
+                      ? 'bg-purple-100 text-purple-800 border border-purple-200'
                       : 'bg-rose-100 text-rose-800 border border-rose-200'
                   }`}>
                     {veh.status}

@@ -288,112 +288,55 @@ export default function App() {
         )}
       </main>
 
-      {/* Official Egypt Post Footer & Executive Design Credits */}
-      <footer className="no-print bg-slate-900 text-white border-t border-slate-800 pt-10 pb-8 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-center pb-8 border-b border-slate-800">
-            {/* Column 1: Egypt Post Logo & System Identity */}
-            <div className="space-y-3 text-right">
+      {/* Sleek, Clean, Official Footer */}
+      <footer className="no-print bg-slate-900 text-white border-t border-slate-800 py-6 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
+            
+            {/* Right: Egypt Post Logo & System */}
+            <div className="flex items-center gap-3">
               <EgyptPostLogo 
                 variant="light"
-                className="justify-start"
-                subtitle="الهيئة القومية للبريد المصري"
+                className="h-7"
               />
-              <p className="text-xs text-slate-400 leading-relaxed max-w-sm">
-                المنظومة الرقمية المركزية لإدارة أسطول حركة وتوزيع سيارات النقل والمخازن الإقليمية وربط العمليات اللوجستية بين المركز الرئيسي والمحافظات.
-              </p>
+              <span className="text-slate-400 font-medium">
+                منظومة إدارة أسطول النقل والمخازن الإقليمية
+              </span>
             </div>
 
-            {/* Column 2: Executive Credits & Supervision (User's Exact Specification) */}
-            <div className="bg-gradient-to-br from-emerald-950/80 via-slate-850 to-slate-900 border-2 border-emerald-500/40 rounded-2xl p-4 sm:p-5 shadow-xl shadow-emerald-950/30 text-right">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="p-1 rounded-md bg-amber-400/20 text-amber-400">
-                  <Award className="w-4 h-4" />
-                </span>
-                <span className="text-[11px] font-black uppercase tracking-wider text-amber-400">
-                  حقوق التصميم والإشراف الفني
-                </span>
-              </div>
-              <h3 className="text-base font-black text-white m-0 tracking-tight flex items-center gap-2">
-                <span>م/ محمد ابراهيم ابوالمعاطى</span>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-full font-bold">
-                  مهندس المنظومة
-                </span>
-              </h3>
-              <p className="text-xs text-emerald-300 font-semibold mt-1">
-                مدير ادارة الدعم والمتابعة
-              </p>
-              
-              {/* Phone & WhatsApp Quick Connect */}
-              <div className="flex items-center gap-2.5 mt-3 pt-3 border-t border-emerald-500/20 flex-wrap">
-                <a
-                  href="tel:01159700466"
-                  className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-mono font-bold text-xs px-3 py-1.5 rounded-lg shadow-sm transition-colors"
-                >
-                  <Phone className="w-3.5 h-3.5" />
-                  <span>01159700466</span>
-                </a>
-                <a
-                  href="https://wa.me/201159700466"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs px-3 py-1.5 rounded-lg transition-colors"
-                >
-                  <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>محادثة واتساب</span>
-                </a>
-              </div>
+            {/* Center: Supervision Credit */}
+            <div className="flex items-center gap-2 text-slate-300 flex-wrap justify-center">
+              <span className="text-amber-400 font-bold">إشراف وتصميم:</span>
+              <strong className="text-white">م/ محمد ابراهيم ابوالمعاطى</strong>
+              <span className="text-slate-400">— مدير ادارة الدعم والمتابعة</span>
+              <a 
+                href="https://wa.me/201159700466"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-emerald-400 hover:text-emerald-300 font-mono font-bold mr-1 hover:underline flex items-center gap-1"
+                dir="ltr"
+              >
+                01159700466
+              </a>
             </div>
 
-            {/* Column 3: Logistics Hubs & Data Operations */}
-            <div className="space-y-3 text-right">
-              <div className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                المواقع اللوجستية المتصلة بالمنظومة
-              </div>
-              <ul className="text-xs text-slate-400 space-y-1.5 font-medium">
-                <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                  <span>المخزن الرئيسي - مبنى المخازن بالتجمع الخامس</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>
-                  <span>جراج السيارات المركزي - شبرا</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                  <span>المخازن الإقليمية: الغربية (القرشية) • المنيا الجديدة • سوهاج (الكوثر)</span>
-                </li>
-              </ul>
-              
-              <div className="pt-2">
-                <button
-                  onClick={async () => {
-                    if (window.confirm('هل تريد استعادة البيانات الافتراضية للأسطول؟')) {
-                      await resetDatabase();
-                      await loadData();
-                    }
-                  }}
-                  className="text-xs text-slate-500 hover:text-slate-300 cursor-pointer flex items-center gap-1.5 transition-colors"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  <span>إعادة ضبط البيانات الافتراضية</span>
-                </button>
-              </div>
+            {/* Left: Reset Database */}
+            <div>
+              <button
+                onClick={async () => {
+                  if (window.confirm('هل تريد استعادة البيانات الافتراضية للأسطول؟')) {
+                    await resetDatabase();
+                    await loadData();
+                  }
+                }}
+                className="text-slate-500 hover:text-slate-400 cursor-pointer flex items-center gap-1.5 transition-colors text-[11px]"
+              >
+                <RefreshCw className="w-3 h-3" />
+                <span>إعادة ضبط البيانات</span>
+              </button>
             </div>
 
           </div>
-
-          {/* Bottom Copyright Strip */}
-          <div className="flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-3">
-            <p className="m-0">
-              جميع الحقوق الفكرية والتنظيمية محفوظة © 2026 — الهيئة القومية للبريد المصري
-            </p>
-            <p className="m-0 font-medium text-slate-400">
-              إشراف وتطوير: <strong className="text-slate-300">م/ محمد ابراهيم ابوالمعاطى</strong> — مدير ادارة الدعم والمتابعة
-            </p>
-          </div>
-
         </div>
       </footer>
 

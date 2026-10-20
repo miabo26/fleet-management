@@ -196,6 +196,8 @@ export default function DriversManagement({
                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                       : driver.status === 'في مأمورية'
                       ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                      : driver.status === 'إجازة'
+                      ? 'bg-rose-100 text-rose-800 border border-rose-200'
                       : 'bg-slate-100 text-slate-700 border border-slate-200'
                   }`}>
                     {driver.status}
@@ -265,11 +267,32 @@ export default function DriversManagement({
               </div>
 
               {/* Footer */}
-              <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
+              <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
                 <span className="text-[11px] font-bold text-slate-600">
                   إجمالي المأموريات: <strong className="text-blue-600">{driver.totalMissions || 0}</strong> رحلة
                 </span>
+                
                 <div className="flex items-center gap-1.5">
+                  {driver.status === 'متاح' && (
+                    <button
+                      type="button"
+                      onClick={() => onUpdateDriver(driver.id, { ...driver, status: 'إجازة' })}
+                      className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/80 text-[11px] font-bold transition-colors cursor-pointer"
+                      title="تسجيل أن السائق في إجازة رسمية لحجب شاحنته من المأموريات"
+                    >
+                      تسجيل إجازة 🏖️
+                    </button>
+                  )}
+                  {driver.status === 'إجازة' && (
+                    <button
+                      type="button"
+                      onClick={() => onUpdateDriver(driver.id, { ...driver, status: 'متاح' })}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 text-[11px] font-bold transition-colors cursor-pointer"
+                      title="عودة السائق للعمل وإتاحة شاحنته في التكليف"
+                    >
+                      إنهاء الإجازة (متاح) ✅
+                    </button>
+                  )}
                   <button
                     onClick={() => openEditModal(driver)}
                     className="p-2 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-600 transition-colors cursor-pointer"

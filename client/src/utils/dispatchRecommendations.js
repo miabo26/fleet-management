@@ -1,7 +1,7 @@
 /**
  * Smart Dispatch Recommendation Engine (نظام الترشيح والتوزيع العادل للمأموريات)
  * Analyzes mission history for the current week and provides vehicle recommendations
- * based on destination rotation and quota conditions (e.g. 0 missions vs >= 2 missions).
+ * based on destination rotation, vehicle availability, and driver leave status (إجازة السائقين).
  */
 
 /**
@@ -20,21 +20,39 @@ export function getStartOfCurrentWeek(refDate = new Date()) {
 }
 
 /**
- * Analyzes vehicles against missions to a specific destination in the current week
+ * Checks if a driver is currently on leave (إجازة)
+ * @param {object} driver 
+ * @returns {boolean}
+ */
+export function isDriverOnLeaveStatus(driver) {
+  if (!driver || !driver.status) return false;
+  const s = String(driver.status).trim();
+  return s === 'إجازة' || s === 'اجازة' || s.includes('إجازة') || s.includes('اجازة');
+}
+
+/**
+ * Analyzes vehicles against missions to a specific destination in the current week,
+ * taking into account driver leave status and vehicle readiness.
  * @param {object} params
  * @param {Array} params.vehicles - List of fleet vehicles
  * @param {Array} params.missions - List of all missions
+ * @param {Array} params.drivers - List of all drivers
  * @param {string} params.destinationId - The selected destination ID (e.g. 'loc-gharbia-qarshiya')
  * @param {string} params.destinationName - Name of the destination
  * @param {string} params.vehicleTypeFilter - 'all' | 'box' | 'canter'
+ * @param {boolean} params.excludeDriversOnLeave - Exclude vehicles whose driver is on leave (default: true)
+ * @param {boolean} params.onlyAvailable - Show only available vehicles (default: false)
  * @returns {object} Recommendations and statistics
  */
 export function getVehicleDispatchRecommendations({
   vehicles = [],
   missions = [],
+  drivers = [],
   destinationId = '',
   destinationName = 'القرشية',
-  vehicleTypeFilter = 'all'
+  vehicleTypeFilter = 'all',
+  excludeDriversOnLeave = true,
+  onlyAvailable = false
 }) {
   const weekStart = getStartOfCurrentWeek();
 
@@ -51,8 +69,24 @@ export function getVehicleDispatchRecommendations({
     return m.destinationId === destinationId;
   });
 
-  // Map each vehicle with its statistics
+  // Map each vehicle with its driver, leave status, and destination statistics
   const analyzedVehicles = vehicles.map(v => {
+    // Find assigned driver
+    let assignedDriver = null;
+    if (v.driverId) {
+      assignedDriver = drivers.find(d => d.id === v.driverId);
+    }
+    if (!assignedDriver) {
+      assignedDriver = drivers.find(d => d.assignedVehicleId === v.id);
+    }
+
+    const driverOnLeave = isDriverOnLeaveStatus(assignedDriver);
+    const driverOnMission = assignedDriver && assignedDriver.status === 'في مأمورية';
+    const driverName = assignedDriver ? assignedDriver.name : 'غير محدد';
+
+    // A vehicle is genuinely available ONLY if its own status is 'متاحة' and its driver is not on leave
+    const isAvailable = (v.status === 'متاحة') && !driverOnLeave;
+
     // Count missions for this specific vehicle to this destination this week
     const vehicleDestMissions = destMissionsThisWeek.filter(m => m.vehicleId === v.id);
     const destCount = vehicleDestMissions.length;
@@ -72,11 +106,16 @@ export function getVehicleDispatchRecommendations({
     let isRecommended = false;
     let hasAchievedMinTwo = false;
 
-    if (destCount === 0) {
+    if (driverOnLeave) {
+      recommendationType = 'driver_on_leave';
+      recommendationLabel = `السائق (${driverName}) في إجازة رسمية - لا يمكن إسناد مأمورية`;
+      recommendationTag = `🏖️ سائقها في إجازة`;
+      badgeClass = 'bg-rose-100 text-rose-800 border-rose-300';
+    } else if (destCount === 0) {
       // 0 missions to this destination this week -> HIGHEST RECOMMENDATION (لعدالة التوزيع)
-      isRecommended = true;
+      isRecommended = isAvailable;
       recommendationType = 'priority_recommended';
-      recommendationLabel = `لم تخرج للوجهة هذا الأسبوع (الأحق بالخروج)`;
+      recommendationLabel = `لم تخرج للوجهة هذا الأسبوع (الأحق بالخروج لعدالة التوزيع)`;
       recommendationTag = `⭐ موصى بها (0 مأموريات)`;
       badgeClass = 'bg-emerald-500 text-white border-emerald-600';
     } else if (destCount >= 2) {
@@ -101,8 +140,13 @@ export function getVehicleDispatchRecommendations({
       type: v.type,
       isBox,
       isCanter,
-      status: v.status,
-      isAvailable: v.status === 'متاحة',
+      status: driverOnLeave ? 'سائق بإجازة' : v.status,
+      rawStatus: v.status,
+      isAvailable,
+      driverOnLeave,
+      driverOnMission,
+      driverName,
+      assignedDriver,
       currentLocation: v.currentLocation,
       driverId: v.driverId,
       destCountThisWeek: destCount,
@@ -117,24 +161,36 @@ export function getVehicleDispatchRecommendations({
     };
   });
 
-  // Filter by vehicle type if requested
-  const filteredVehicles = analyzedVehicles.filter(v => {
+  // Track vehicles whose driver is on leave
+  const leaveVehicles = analyzedVehicles.filter(v => v.driverOnLeave);
+
+  // Filter by vehicle category (box / canter)
+  let filteredVehicles = analyzedVehicles.filter(v => {
     if (vehicleTypeFilter === 'box') return v.isBox;
     if (vehicleTypeFilter === 'canter') return v.isCanter;
     return true;
   });
 
-  // Segregate categories
-  const recommendedVehicles = filteredVehicles.filter(v => v.destCountThisWeek === 0);
+  // Exclude vehicles whose driver is on leave to eliminate any operational conflict
+  if (excludeDriversOnLeave) {
+    filteredVehicles = filteredVehicles.filter(v => !v.driverOnLeave);
+  }
+
+  // Show only available vehicles if option selected
+  if (onlyAvailable) {
+    filteredVehicles = filteredVehicles.filter(v => v.isAvailable);
+  }
+
+  // Segregate categories among remaining vehicles
+  const recommendedVehicles = filteredVehicles.filter(v => v.destCountThisWeek === 0 && v.isAvailable);
   const achievedMinTwoVehicles = filteredVehicles.filter(v => v.hasAchievedMinTwo);
   const singleMissionVehicles = filteredVehicles.filter(v => v.destCountThisWeek === 1);
+  const availableVehicles = filteredVehicles.filter(v => v.isAvailable);
 
   // Sort order: Available first, then recommended (0 count), then 1 count, then >= 2 count
   const sortedVehicles = [...filteredVehicles].sort((a, b) => {
-    // Availability first
     if (a.isAvailable && !b.isAvailable) return -1;
     if (!a.isAvailable && b.isAvailable) return 1;
-    // Then destination count ascending (0 first, then 1, then 2+)
     return a.destCountThisWeek - b.destCountThisWeek;
   });
 
@@ -147,7 +203,11 @@ export function getVehicleDispatchRecommendations({
     recommendedVehicles,
     achievedMinTwoVehicles,
     singleMissionVehicles,
+    availableVehicles,
+    leaveVehicles,
+    leaveVehiclesCount: leaveVehicles.length,
     totalCount: filteredVehicles.length,
+    availableCount: availableVehicles.length,
     recommendedCount: recommendedVehicles.length,
     achievedCount: achievedMinTwoVehicles.length
   };

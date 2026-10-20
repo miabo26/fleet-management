@@ -150,13 +150,29 @@ export default function NewMissionModal({
     : destName.includes('سوهاج') ? 'سوهاج' 
     : destName;
 
+  // Active drivers excluding those on official leave (إجازة) to prevent operational conflict
+  const activeDrivers = drivers.filter(d => {
+    if (!d || !d.status) return true;
+    const s = String(d.status).trim();
+    return s !== 'إجازة' && s !== 'اجازة' && !s.includes('إجازة') && !s.includes('اجازة');
+  });
+
+  const onLeaveDrivers = drivers.filter(d => {
+    if (!d || !d.status) return false;
+    const s = String(d.status).trim();
+    return s === 'إجازة' || s === 'اجازة' || s.includes('إجازة') || s.includes('اجازة');
+  });
+
   // Compute Smart Dispatch Recommendations
   const dispatchRecs = getVehicleDispatchRecommendations({
     vehicles,
     missions,
+    drivers,
     destinationId: formData.destinationId,
     destinationName: shortDestName,
-    vehicleTypeFilter
+    vehicleTypeFilter,
+    excludeDriversOnLeave: true,
+    onlyAvailable: true
   });
 
   // Handle Destination Change
@@ -195,20 +211,23 @@ export default function NewMissionModal({
     }));
   };
 
-  // Select recommended vehicle and auto-pair driver
+  // Select recommended vehicle and auto-pair driver (guaranteeing non-leave driver)
   const handleSelectRecommendedVehicle = (vehId) => {
     const veh = vehicles.find(v => v.id === vehId);
     if (!veh) return;
 
     let matchingDriver = null;
     if (veh.driverId) {
-      matchingDriver = drivers.find(d => d.id === veh.driverId);
+      matchingDriver = activeDrivers.find(d => d.id === veh.driverId);
     }
     if (!matchingDriver) {
-      matchingDriver = drivers.find(d => d.assignedVehicleId === veh.id);
+      matchingDriver = activeDrivers.find(d => d.assignedVehicleId === veh.id);
     }
     if (!matchingDriver) {
-      matchingDriver = drivers.find(d => d.vehicleCategory === veh.type && d.status === 'متاح');
+      matchingDriver = activeDrivers.find(d => d.vehicleCategory === veh.type && d.status === 'متاح');
+    }
+    if (!matchingDriver) {
+      matchingDriver = activeDrivers.find(d => d.status === 'متاح') || activeDrivers[0];
     }
 
     setFormData(prev => ({
@@ -220,15 +239,15 @@ export default function NewMissionModal({
 
   // When driver is selected, auto-select matching vehicle
   const handleDriverChange = (drvId) => {
-    const driver = drivers.find(d => d.id === drvId);
+    const driver = activeDrivers.find(d => d.id === drvId);
     if (!driver) return;
 
     let matchingVeh = null;
     if (driver.assignedVehicleId) {
-      matchingVeh = vehicles.find(v => v.id === driver.assignedVehicleId);
+      matchingVeh = dispatchRecs.filteredVehicles.find(v => v.id === driver.assignedVehicleId);
     }
     if (!matchingVeh) {
-      matchingVeh = vehicles.find(v => v.type === driver.vehicleCategory && v.status === 'متاحة');
+      matchingVeh = dispatchRecs.filteredVehicles.find(v => v.type === driver.vehicleCategory && v.isAvailable);
     }
 
     setFormData(prev => ({
@@ -249,9 +268,12 @@ export default function NewMissionModal({
       const initialRecs = getVehicleDispatchRecommendations({
         vehicles,
         missions,
+        drivers,
         destinationId: defaultDest,
         destinationName: 'القرشية',
-        vehicleTypeFilter: 'box'
+        vehicleTypeFilter: 'box',
+        excludeDriversOnLeave: true,
+        onlyAvailable: true
       });
       const bestVeh = initialRecs.filteredVehicles.find(v => v.destCountThisWeek === 0 && v.isAvailable)
         || initialRecs.filteredVehicles.find(v => v.isAvailable)
@@ -259,16 +281,16 @@ export default function NewMissionModal({
 
       let matchingDriver = null;
       if (bestVeh) {
-        if (bestVeh.driverId) matchingDriver = drivers.find(d => d.id === bestVeh.driverId);
-        if (!matchingDriver) matchingDriver = drivers.find(d => d.assignedVehicleId === bestVeh.id);
-        if (!matchingDriver) matchingDriver = drivers.find(d => d.vehicleCategory === bestVeh.type && d.status === 'متاح');
+        if (bestVeh.driverId) matchingDriver = activeDrivers.find(d => d.id === bestVeh.driverId);
+        if (!matchingDriver) matchingDriver = activeDrivers.find(d => d.assignedVehicleId === bestVeh.id);
+        if (!matchingDriver) matchingDriver = activeDrivers.find(d => d.vehicleCategory === bestVeh.type && d.status === 'متاح');
       }
-      if (!matchingDriver) matchingDriver = drivers.find(d => d.status === 'متاح') || drivers[0];
+      if (!matchingDriver) matchingDriver = activeDrivers.find(d => d.status === 'متاح') || activeDrivers[0];
 
       setFormData(prev => ({
         ...prev,
         driverId: matchingDriver ? matchingDriver.id : '',
-        vehicleId: bestVeh ? bestVeh.id : (vehicles[0]?.id || ''),
+        vehicleId: bestVeh ? bestVeh.id : (dispatchRecs.filteredVehicles[0]?.id || ''),
         destinationId: defaultDest,
         departureDate: dep,
         expectedArrival: calculateArrivalDate(dep, r.arrivalHours),
@@ -296,6 +318,19 @@ export default function NewMissionModal({
       alert('يرجى اختيار السائق والسيارة لإتمام التكليف');
       return;
     }
+
+    const chosenDriver = drivers.find(d => d.id === formData.driverId);
+    if (chosenDriver && (chosenDriver.status === 'إجازة' || chosenDriver.status?.includes('إجازة'))) {
+      alert(`عفواً: السائق (${chosenDriver.name}) مسجل في إجازة حالياً، يرجى اختيار سائق متاح.`);
+      return;
+    }
+
+    const chosenVeh = vehicles.find(v => v.id === formData.vehicleId);
+    if (chosenVeh && (chosenVeh.status === 'سائق بإجازة' || chosenVeh.status === 'صيانة')) {
+      alert(`عفواً: الشاحنة غير متاحة لخروج مأمورية (سائقها في إجازة أو بحالة صيانة).`);
+      return;
+    }
+
     onSubmit(formData);
     onClose();
   };
@@ -532,6 +567,21 @@ export default function NewMissionModal({
               </div>
             </div>
 
+            {/* Operational Protection Alert if Drivers are on Leave */}
+            {onLeaveDrivers.length > 0 && (
+              <div className="bg-amber-500/15 border border-amber-500/30 rounded-xl p-2.5 flex items-start gap-2 text-xs text-amber-200">
+                <AlertCircle className="w-4 h-4 text-amber-300 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-amber-300 block">
+                    🛡️ حماية تشغيلية لمنع الخلل: تم حجب السائقين في إجازة وشاحناتهم تلقائياً من خيارات المأمورية
+                  </span>
+                  <span className="text-[11px] text-slate-300">
+                    في إجازة حالياً: {onLeaveDrivers.map(d => `${d.name} (${d.role})`).join(' • ')} — ولا تظهر شاحناتهم لمنع أي تضارب تشغيلي.
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Interactive Vehicle Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
               {dispatchRecs.filteredVehicles.map(veh => {
@@ -645,8 +695,8 @@ export default function NewMissionModal({
                 onChange={e => handleDriverChange(e.target.value)}
                 className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500/20"
               >
-                <option value="">-- اختر السائق --</option>
-                {drivers.map(d => {
+                <option value="">-- اختر السائق من الطاقم المتاح --</option>
+                {activeDrivers.map(d => {
                   const drvDestCount = missions.filter(m => 
                     m.driverId === d.id && 
                     m.destinationId === formData.destinationId &&
@@ -661,6 +711,11 @@ export default function NewMissionModal({
                   );
                 })}
               </select>
+              {onLeaveDrivers.length > 0 && (
+                <span className="text-[10px] text-amber-700 font-bold block mt-1">
+                  🏖️ تم استبعاد {onLeaveDrivers.length} سائقين بسبب الإجازة الرسمية لمنع الخلل التشغيلي
+                </span>
+              )}
               {selectedDriver && (() => {
                 const drvDestCount = missions.filter(m => 
                   m.driverId === selectedDriver.id && 
@@ -702,9 +757,9 @@ export default function NewMissionModal({
                 onChange={e => handleSelectRecommendedVehicle(e.target.value)}
                 className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500/20"
               >
-                <option value="">-- اختر السيارة من الأسطول --</option>
-                <optgroup label="سيارات نقل صندوق (3 سيارات)">
-                  {dispatchRecs.allVehicles.filter(v => v.isBox).map(v => (
+                <option value="">-- اختر السيارة المتاحة من الأسطول --</option>
+                <optgroup label="سيارات نقل صندوق المتاحة">
+                  {dispatchRecs.filteredVehicles.filter(v => v.isBox).map(v => (
                     <option key={v.id} value={v.id}>
                       {v.code} - {v.plateNumber || 'بدون لوحة'} ({v.status}) — {
                         v.destCountThisWeek === 0 
@@ -716,8 +771,8 @@ export default function NewMissionModal({
                     </option>
                   ))}
                 </optgroup>
-                <optgroup label="سيارات كانتر شاسيه طويل (3 سيارات)">
-                  {dispatchRecs.allVehicles.filter(v => v.isCanter).map(v => (
+                <optgroup label="سيارات كانتر شاسيه طويل المتاحة">
+                  {dispatchRecs.filteredVehicles.filter(v => v.isCanter).map(v => (
                     <option key={v.id} value={v.id}>
                       {v.code} - {v.plateNumber || 'بدون لوحة'} ({v.status}) — {
                         v.destCountThisWeek === 0 

@@ -302,6 +302,7 @@ app.put('/api/drivers/:id', (req, res) => {
   }
 
   db.drivers[index] = { ...db.drivers[index], ...req.body };
+  syncFleetStatus(db);
   writeDb(db);
   res.json({ message: 'تم تحديث بيانات السائق', driver: db.drivers[index] });
 });
