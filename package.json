@@ -1,0 +1,27 @@
+{
+  "name": "fleet-management-system",
+  "version": "1.0.0",
+  "description": "منظومة إدارة أسطول النقل والمأموريات والسائقين",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "server": "node --watch server/server.js",
+    "client": "npm --prefix client run dev",
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,green\" \"node --watch server/server.js\" \"npm --prefix client run dev\"",
+    "build": "npm --prefix client install && npm --prefix client run build"
+  },
+  "keywords": [
+    "fleet",
+    "logistics",
+    "dispatch",
+    "egypt",
+    "drivers"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "concurrently": "^9.1.2",
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  }
+}
