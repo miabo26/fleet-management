@@ -16,8 +16,11 @@ import {
   FileSpreadsheet,
   Bell,
   AlertTriangle,
-  ExternalLink
+  ExternalLink,
+  Award,
+  Phone
 } from 'lucide-react';
+import EgyptPostLogo from './EgyptPostLogo';
 import { getFleetLicenseAlerts } from '../utils/licenseUtils';
 
 export default function Dashboard({ 
@@ -58,25 +61,38 @@ export default function Dashboard({
 
   return (
     <div className="space-y-8 pb-12">
-      {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-900 p-6 md:p-8 text-white shadow-xl">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-xs font-medium border border-blue-500/30">
-              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-              النظام اللوجستي يعمل بكفاءة تامة
+      {/* Welcome Banner with Egypt Post Official Identity */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-950 via-emerald-950 to-slate-900 p-6 md:p-8 text-white shadow-2xl border border-emerald-500/20">
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <EgyptPostLogo 
+                variant="light"
+                showText={false}
+                className="h-9 w-9"
+              />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                الهيئة القومية للبريد المصري — قطاع الدعم والعمليات
+              </div>
+              <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/10 text-amber-300 text-xs font-semibold border border-amber-400/20">
+                <Award className="w-3.5 h-3.5 text-amber-400" />
+                <span>إشراف: م/ محمد ابراهيم ابوالمعاطى</span>
+              </div>
             </div>
+
             <h2 className="text-2xl md:text-3xl font-black tracking-tight text-white m-0">
-              برنامج حركة السيارات والمخازن الإقليمية
+              منظومة حركة وتوزيع سيارات الأسطول والمخازن الإقليمية
             </h2>
             <p className="text-slate-300 text-sm max-w-2xl leading-relaxed">
-              إدارة حركة <strong>{vehicles.length} سيارات</strong> (3 نقل صندوق + 3 كانتر شاسيه طويل) و <strong>{drivers.length} سائقين</strong> مع الربط بين المخزن الرئيسي بالتجمع وجراج شبرا والمخازن الإقليمية الثلاثة (الغربية، المنيا الجديدة، سوهاج الكوثر).
+              إدارة ومتابعة تشغيل <strong>{vehicles.length} سيارات</strong> و <strong>{drivers.length} سائقين</strong> مع الربط اللوجستي المتكامل بين المخزن الرئيسي بالتجمع وجراج شبرا والمخازن الإقليمية (القرشية بالغربية • مركز الطويل بالمنيا الجديدة • حي الكوثر بسوهاج).
             </p>
           </div>
+
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={onOpenNewMission}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-3 rounded-xl shadow-lg shadow-blue-600/30 transition-all cursor-pointer"
+              className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold px-5 py-3 rounded-xl shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
             >
               <Plus className="w-5 h-5" />
               <span>إسناد مأمورية سريعة</span>

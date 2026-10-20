@@ -11,8 +11,11 @@ import {
   Clock,
   Compass,
   FileSpreadsheet,
-  Bell
+  Bell,
+  PhoneCall,
+  UserCheck
 } from 'lucide-react';
+import EgyptPostLogo from './EgyptPostLogo';
 import { getFleetLicenseAlerts } from '../utils/licenseUtils';
 
 export default function Navbar({ 
@@ -47,15 +50,22 @@ export default function Navbar({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           
-          {/* Logo & Title */}
+          {/* Egypt Post Official Logo & Title */}
           <div className="flex items-center space-x-reverse space-x-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/30">
-              <Truck className="w-7 h-7 text-white" />
-            </div>
+            <EgyptPostLogo 
+              variant="light" 
+              subtitle="قطاع الدعم والعمليات اللوجستية"
+            />
+            
+            <div className="hidden md:block h-10 w-[1px] bg-slate-800"></div>
+
             <div>
               <div className="flex items-center space-x-reverse space-x-2.5">
-                <h1 className="text-xl font-black tracking-tight text-white m-0">برنامج حركة السيارات والمخازن الإقليمية</h1>
-                <span className="text-[11px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2.5 py-0.5 rounded-full">
+                <h1 className="text-lg lg:text-xl font-black tracking-tight text-white m-0">
+                  منظومة حركة السيارات والمخازن الإقليمية
+                </h1>
+                <span className="text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full hidden sm:inline-flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                   إدارة الحركة والتشغيل
                 </span>
               </div>
@@ -69,8 +79,32 @@ export default function Navbar({
             </div>
           </div>
 
-          {/* Quick Stats, License Bell & Action Button */}
+          {/* Supervisor Card, Quick Stats & Action Button */}
           <div className="flex items-center space-x-reverse space-x-3">
+            {/* Design & Supervision Credit Pill */}
+            <div className="hidden xl:flex items-center gap-2.5 bg-gradient-to-r from-emerald-950/60 to-slate-900 border border-emerald-500/30 px-3.5 py-1.5 rounded-xl shadow-inner">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-300 shrink-0">
+                <UserCheck className="w-4 h-4" />
+              </div>
+              <div className="text-right leading-tight">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">إشراف وتصميم:</span>
+                  <span className="text-xs font-black text-white">م/ محمد ابراهيم ابوالمعاطى</span>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[10px] text-slate-300 font-medium">مدير ادارة الدعم والمتابعة</span>
+                  <a 
+                    href="tel:01159700466" 
+                    className="text-[10px] text-emerald-400 hover:text-emerald-300 font-mono font-bold flex items-center gap-0.5 bg-emerald-500/10 px-1.5 py-0.2 rounded hover:underline"
+                    title="اتصال مباشر أو واتساب"
+                  >
+                    <PhoneCall className="w-2.5 h-2.5" />
+                    <span>01159700466</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+
             {/* Live Indicator */}
             <div className="hidden lg:flex items-center gap-3 bg-slate-800/80 px-4 py-2 rounded-xl border border-slate-700/60 text-xs text-slate-300">
               <div className="flex items-center gap-2">

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Printer, X, Truck, ShieldCheck, Calendar, MapPin, User, FileText } from 'lucide-react';
+import { Printer, X, Truck, ShieldCheck, Calendar, MapPin, User, FileText, CheckCircle } from 'lucide-react';
+import EgyptPostLogo from './EgyptPostLogo';
 
 export default function PrintableTripSheet({ mission, drivers = [], vehicles = [], warehouses = [], onClose }) {
   if (!mission) return null;
@@ -44,31 +45,34 @@ export default function PrintableTripSheet({ mission, drivers = [], vehicles = [
         <div id="printable-trip-sheet" className="p-8 md:p-10 text-slate-900 bg-white font-sans">
           
           {/* Header */}
-          <div className="border-b-2 border-slate-900 pb-5 mb-6 flex items-start justify-between">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Truck className="w-6 h-6 text-slate-900" />
-                <h1 className="text-xl font-black text-slate-900 m-0">شركة النقل والخدمات اللوجستية</h1>
+          <div className="border-b-2 border-emerald-900 pb-5 mb-6 flex items-start justify-between">
+            <div className="flex items-center gap-4">
+              <EgyptPostLogo 
+                variant="dark"
+                subtitle="قطاع الدعم والعمليات اللوجستية"
+              />
+              <div className="border-r-2 border-slate-300 pr-4 space-y-0.5">
+                <h1 className="text-base font-black text-slate-900 m-0">الهيئة القومية للبريد المصري</h1>
+                <p className="text-xs text-emerald-800 font-bold">إدارة الدعم والمتابعة — إدارة حركة وتوزيع الأسطول</p>
+                <p className="text-[11px] text-slate-500">المخزن الرئيسي بالتجمع الخامس • جراج شبرا المركزي</p>
               </div>
-              <p className="text-xs text-slate-600">إدارة الحركة والأسطول - جراج شبرا / المخزن الرئيسي بالتجمع</p>
-              <p className="text-[11px] text-slate-500">سجل تجاري: 491209 - بطاقة ضريبية: 310-845-212</p>
             </div>
 
             <div className="text-left font-mono space-y-1">
-              <div className="border-2 border-slate-900 px-3 py-1.5 rounded-lg bg-slate-50 text-center">
-                <span className="text-[10px] text-slate-500 block">رقم أمر التشغيل والمأمورية</span>
-                <span className="text-sm font-black text-slate-900">{mission.missionNumber}</span>
+              <div className="border-2 border-emerald-900 px-4 py-1.5 rounded-lg bg-emerald-50 text-center">
+                <span className="text-[10px] text-emerald-800 font-bold block">رقم أمر التشغيل والمأمورية</span>
+                <span className="text-base font-black text-slate-950">{mission.missionNumber}</span>
               </div>
-              <span className="text-[11px] text-slate-500 block text-right mt-1">
+              <span className="text-[11px] text-slate-600 block text-right mt-1 font-sans">
                 تاريخ الإصدار: {new Date().toLocaleDateString('ar-EG')}
               </span>
             </div>
           </div>
 
           {/* Title Banner */}
-          <div className="text-center mb-6 bg-slate-100 py-2.5 border-y border-slate-300">
+          <div className="text-center mb-6 bg-gradient-to-r from-emerald-50 via-slate-100 to-emerald-50 py-2.5 border-y-2 border-emerald-800">
             <h2 className="text-base font-black tracking-wide text-slate-900 m-0">
-              أمر تشغيل ومأمورية سير شاحنة رسمية
+              أمر تشغيل ومأمورية سير شاحنة رسمية — بريد مصر
             </h2>
           </div>
 
@@ -196,38 +200,71 @@ export default function PrintableTripSheet({ mission, drivers = [], vehicles = [
 
           </div>
 
-          {/* Official Signatures Matrix */}
-          <div className="border-t-2 border-slate-900 pt-5 mt-8">
-            <div className="text-xs font-bold text-slate-600 mb-6 text-center">
-              إقرار رسمي بالاستلام والتسليم ومطابقة الشروط واللوائح الفنية
+          {/* Official Signatures Matrix & Approval Box */}
+          <div className="border-t-2 border-emerald-900 pt-5 mt-8 space-y-6">
+            <div className="text-xs font-bold text-slate-700 text-center">
+              إقرار رسمي بالاستلام والتسليم ومطابقة الشروط واللوائح الفنية لحركة سيارات البريد المصري
             </div>
 
+            {/* Operating Roles Signatures */}
             <div className="grid grid-cols-4 gap-4 text-center text-xs">
-              <div className="space-y-8">
+              <div className="space-y-6 border-l border-slate-200 pl-2">
                 <div className="font-bold text-slate-900">مسؤول الحركة والتشغيل</div>
                 <div className="text-[11px] text-slate-400">التوقيع: .....................</div>
               </div>
 
-              <div className="space-y-8">
+              <div className="space-y-6 border-l border-slate-200 pl-2">
                 <div className="font-bold text-slate-900">أمين المخزن الرئيسي (المسلّم)</div>
                 <div className="text-[11px] text-slate-400">التوقيع: .....................</div>
               </div>
 
-              <div className="space-y-8">
+              <div className="space-y-6 border-l border-slate-200 pl-2">
                 <div className="font-bold text-slate-900">السائق المستلم للحمولة</div>
                 <div className="text-[11px] text-slate-400">التوقيع: .....................</div>
               </div>
 
-              <div className="space-y-8">
+              <div className="space-y-6">
                 <div className="font-bold text-slate-900">أمين المخزن الإقليمي (المستلم)</div>
                 <div className="text-[11px] text-slate-400">التوقيع: .....................</div>
+              </div>
+            </div>
+
+            {/* High Level Approval & Endorsement by Director */}
+            <div className="mt-6 p-4 rounded-xl border-2 border-emerald-800 bg-emerald-50/50 flex items-center justify-between">
+              <div className="text-right">
+                <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">
+                  اعتماد ومتابعة أمر التشغيل:
+                </span>
+                <span className="text-sm font-black text-slate-950">
+                  م/ محمد ابراهيم ابوالمعاطى
+                </span>
+                <span className="text-xs text-emerald-900 font-bold block">
+                  مدير ادارة الدعم والمتابعة — الهيئة القومية للبريد المصري
+                </span>
+              </div>
+
+              <div className="text-center font-mono text-xs border border-emerald-700/40 bg-white px-4 py-2 rounded-lg">
+                <span className="text-[10px] text-slate-500 block">هاتف الدعم المباشر</span>
+                <strong className="text-slate-900 font-bold text-sm">01159700466</strong>
+              </div>
+
+              <div className="text-left">
+                <span className="text-[10px] text-slate-500 block">خاتم وتوقيع الاعتماد</span>
+                <span className="text-xs text-slate-400 inline-block mt-3 border-b border-dashed border-slate-400 w-32 text-center">
+                  ................................
+                </span>
               </div>
             </div>
           </div>
 
           {/* Footer Notice */}
-          <div className="mt-10 pt-3 border-t border-slate-200 text-center text-[10px] text-slate-400">
-            هذا المستند معتمد رسمي من برنامج حركة السيارات والمخازن الإقليمية ويجب الاحتفاظ به وإعادة النسخة الموقعة لإدارة الحسابات لتسوية العهدة.
+          <div className="mt-8 pt-3 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-[10px] text-slate-500 gap-2">
+            <span>
+              وثيقة مأمورية رسمية صادرة آلياً من منظومة إدارة أسطول النقل والمخازن الإقليمية — الهيئة القومية للبريد المصري.
+            </span>
+            <span className="font-semibold text-slate-700">
+              تصميم وإشراف: م/ محمد ابراهيم ابوالمعاطى
+            </span>
           </div>
 
         </div>
