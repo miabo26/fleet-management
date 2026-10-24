@@ -469,22 +469,6 @@ export default function App() {
               </a>
             </div>
 
-            {/* Left: Reset Database */}
-            <div>
-              <button
-                onClick={async () => {
-                  if (window.confirm('هل تريد استعادة البيانات الافتراضية للأسطول؟')) {
-                    await resetDatabase();
-                    await loadData();
-                  }
-                }}
-                className="text-slate-500 hover:text-slate-400 cursor-pointer flex items-center gap-1.5 transition-colors text-[11px]"
-              >
-                <RefreshCw className="w-3 h-3" />
-                <span>إعادة ضبط البيانات</span>
-              </button>
-            </div>
-
           </div>
         </div>
       </footer>
