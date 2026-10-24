@@ -102,6 +102,17 @@ function calculateArrivalDate(depDateStr, hoursOffset) {
   return d.toISOString().slice(0, 16);
 }
 
+export const CARGO_PRESET_OPTIONS = [
+  'مهمات ومطبوعات بريدية ونماذج رسمية',
+  'طرود بريدية وشحنات سريعة (EMS)',
+  'بضائع ومهمات تموينية معبأة',
+  'مستلزمات تشغيل وقطع غيار ومستهلكات جراج',
+  'أجهزة حاسب آلي ومعدات مكاتب بريد',
+  'حقائب بريدية ومراسلات مسجلة',
+  'مهمات أثاث وتجهيزات مكاتب',
+  'أخرى (إدخال يدوي مخصص)'
+];
+
 export default function NewMissionModal({ 
   isOpen, 
   onClose, 
@@ -112,6 +123,7 @@ export default function NewMissionModal({
   missions = []
 }) {
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState('box'); // 'box', 'canter', 'all'
+  const [isCustomCargo, setIsCustomCargo] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -119,9 +131,9 @@ export default function NewMissionModal({
     vehicleId: '',
     originId: 'loc-main-tagamoa',
     destinationId: 'loc-gharbia-qarshiya',
-    cargoType: 'بضائع ومهمات تموينية معبأة',
-    cargoWeight: '4.5 طن',
-    dispatchOrderNumber: `إذن صرف #${Math.floor(4000 + Math.random() * 5000)}/2026`,
+    cargoType: 'مهمات ومطبوعات بريدية ونماذج رسمية',
+    cargoWeight: '',
+    dispatchOrderNumber: '',
     departureDate: new Date().toISOString().slice(0, 16),
     expectedArrival: '',
     expectedReturnDate: '',
@@ -131,10 +143,10 @@ export default function NewMissionModal({
     durationLabel: 'يوم واحد (ذهاب وعودة نفس اليوم)',
     scheduleSteps: [],
     distanceKm: 165,
-    cashAdvance: 1500,
-    fuelExpense: 750,
-    tollExpense: 100,
-    driverAllowance: 350,
+    cashAdvance: 0,
+    fuelExpense: 0,
+    tollExpense: 0,
+    driverAllowance: 0,
     otherExpenses: 0,
     status: 'assigned',
     notes: ''
@@ -185,10 +197,11 @@ export default function NewMissionModal({
       ...prev,
       destinationId: destId,
       distanceKm: r.km,
-      fuelExpense: r.fuel,
-      tollExpense: r.tolls,
-      driverAllowance: r.allowance,
-      cashAdvance: r.fuel + r.tolls + r.allowance + 300,
+      fuelExpense: 0,
+      tollExpense: 0,
+      driverAllowance: 0,
+      cashAdvance: 0,
+      otherExpenses: 0,
       occupancyDays: r.occupancyDays,
       schedulePattern: r.schedulePattern,
       scheduleType: r.scheduleType,
@@ -301,10 +314,13 @@ export default function NewMissionModal({
         durationLabel: r.durationLabel,
         scheduleSteps: r.steps,
         distanceKm: r.km,
-        fuelExpense: r.fuel,
-        tollExpense: r.tolls,
-        driverAllowance: r.allowance,
-        cashAdvance: r.fuel + r.tolls + r.allowance + 300,
+        cargoWeight: '',
+        dispatchOrderNumber: '',
+        fuelExpense: 0,
+        tollExpense: 0,
+        driverAllowance: 0,
+        cashAdvance: 0,
+        otherExpenses: 0,
         title: 'مأمورية نقل بضائع لمخزن الغربية (القرشية)'
       }));
     }
@@ -861,44 +877,87 @@ export default function NewMissionModal({
 
           {/* Cargo & Order Details */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Cargo Type Selection + Custom Entry */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                طبيعة الحمولة / البضاعة
+              <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                <span>طبيعة الحمولة / البضاعة</span>
+                {isCustomCargo && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomCargo(false);
+                      setFormData(prev => ({ ...prev, cargoType: CARGO_PRESET_OPTIONS[0] }));
+                    }}
+                    className="text-[10px] text-blue-600 hover:underline font-bold"
+                  >
+                    اختر من الأصناف
+                  </button>
+                )}
               </label>
-              <input
-                type="text"
-                value={formData.cargoType}
-                onChange={e => setFormData({ ...formData, cargoType: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
-              />
+
+              {!isCustomCargo ? (
+                <select
+                  value={formData.cargoType}
+                  onChange={e => {
+                    if (e.target.value === 'other') {
+                      setIsCustomCargo(true);
+                      setFormData(prev => ({ ...prev, cargoType: '' }));
+                    } else {
+                      setFormData(prev => ({ ...prev, cargoType: e.target.value }));
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500/20"
+                >
+                  {CARGO_PRESET_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt === 'أخرى (إدخال يدوي مخصص)' ? 'other' : opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="اكتب طبيعة الحمولة المخصصة هنا..."
+                  value={formData.cargoType}
+                  onChange={e => setFormData({ ...formData, cargoType: e.target.value })}
+                  className="w-full px-3 py-2 bg-white border border-blue-400 rounded-xl text-xs font-bold text-slate-900 focus:ring-2 focus:ring-blue-500/20"
+                />
+              )}
             </div>
 
+            {/* Cargo Weight (Optional) */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                وزن أو حجم الشحنة
+              <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                <span>وزن أو حجم الشحنة</span>
+                <span className="text-[10px] text-slate-400 font-normal">اختياري</span>
               </label>
               <input
                 type="text"
+                placeholder="اختياري - مثلاً: 4 طن"
                 value={formData.cargoWeight}
                 onChange={e => setFormData({ ...formData, cargoWeight: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs placeholder:text-slate-400"
               />
             </div>
 
+            {/* Dispatch Order / Invoice (Optional) */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                رقم إذن الصرف أو الفاتورة
+              <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                <span>رقم إذن الصرف أو الفاتورة</span>
+                <span className="text-[10px] text-slate-400 font-normal">اختياري</span>
               </label>
               <input
                 type="text"
+                placeholder="اختياري - رقم الإذن أو الفاتورة"
                 value={formData.dispatchOrderNumber}
                 onChange={e => setFormData({ ...formData, dispatchOrderNumber: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono"
+                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono placeholder:text-slate-400"
               />
             </div>
           </div>
 
-          {/* Financials & Cash Advance */}
+          {/* Financials & Cash Advance (All Zero By Default) */}
           <div className="bg-amber-500/10 border border-amber-200 p-4 rounded-2xl">
             <h4 className="text-xs font-black text-amber-900 mb-3 flex items-center gap-1.5">
               <DollarSign className="w-4 h-4 text-amber-600" />
@@ -911,8 +970,10 @@ export default function NewMissionModal({
                 </label>
                 <input
                   type="number"
-                  value={formData.cashAdvance}
-                  onChange={e => setFormData({ ...formData, cashAdvance: Number(e.target.value) })}
+                  min="0"
+                  step="any"
+                  value={formData.cashAdvance === 0 ? '0' : formData.cashAdvance || ''}
+                  onChange={e => setFormData({ ...formData, cashAdvance: e.target.value === '' ? 0 : Number(e.target.value) })}
                   className="w-full px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-xs font-bold font-mono text-slate-900"
                 />
               </div>
@@ -923,8 +984,10 @@ export default function NewMissionModal({
                 </label>
                 <input
                   type="number"
-                  value={formData.fuelExpense}
-                  onChange={e => setFormData({ ...formData, fuelExpense: Number(e.target.value) })}
+                  min="0"
+                  step="any"
+                  value={formData.fuelExpense === 0 ? '0' : formData.fuelExpense || ''}
+                  onChange={e => setFormData({ ...formData, fuelExpense: e.target.value === '' ? 0 : Number(e.target.value) })}
                   className="w-full px-3 py-1.5 bg-white border border-amber-200 rounded-lg text-xs font-mono"
                 />
               </div>
@@ -935,8 +998,10 @@ export default function NewMissionModal({
                 </label>
                 <input
                   type="number"
-                  value={formData.tollExpense}
-                  onChange={e => setFormData({ ...formData, tollExpense: Number(e.target.value) })}
+                  min="0"
+                  step="any"
+                  value={formData.tollExpense === 0 ? '0' : formData.tollExpense || ''}
+                  onChange={e => setFormData({ ...formData, tollExpense: e.target.value === '' ? 0 : Number(e.target.value) })}
                   className="w-full px-3 py-1.5 bg-white border border-amber-200 rounded-lg text-xs font-mono"
                 />
               </div>
@@ -947,8 +1012,10 @@ export default function NewMissionModal({
                 </label>
                 <input
                   type="number"
-                  value={formData.driverAllowance}
-                  onChange={e => setFormData({ ...formData, driverAllowance: Number(e.target.value) })}
+                  min="0"
+                  step="any"
+                  value={formData.driverAllowance === 0 ? '0' : formData.driverAllowance || ''}
+                  onChange={e => setFormData({ ...formData, driverAllowance: e.target.value === '' ? 0 : Number(e.target.value) })}
                   className="w-full px-3 py-1.5 bg-white border border-amber-200 rounded-lg text-xs font-mono"
                 />
               </div>
