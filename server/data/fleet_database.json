@@ -297,5 +297,74 @@
     }
   ],
   "missions": [],
-  "maintenanceLogs": []
+  "maintenanceLogs": [],
+  "users": [
+    {
+      "id": "user-admin-1",
+      "name": "م/ محمد ابراهيم ابوالمعاطى",
+      "username": "admin",
+      "password": "admin2026",
+      "role": "admin",
+      "roleLabel": "مدير عام المنظومة (تحكم كامل)",
+      "phone": "01159700466",
+      "department": "إدارة الدعم والمتابعة - البريد المصري",
+      "status": "active",
+      "permissions": [
+        "all"
+      ],
+      "createdAt": "2026-01-01T08:00:00.000Z"
+    },
+    {
+      "id": "user-dispatch-1",
+      "name": "مسؤول تشغيل وحركة",
+      "username": "operations",
+      "password": "op123456",
+      "role": "dispatcher",
+      "roleLabel": "مسؤول حركة وتشغيل",
+      "phone": "",
+      "department": "جراج السيارات المركزي - شبرا",
+      "status": "active",
+      "permissions": [
+        "missions_create",
+        "missions_manage",
+        "fleet_view",
+        "drivers_view",
+        "print_trips"
+      ],
+      "createdAt": "2026-01-01T08:00:00.000Z"
+    },
+    {
+      "id": "user-warehouse-1",
+      "name": "مسؤول استلام المخازن",
+      "username": "warehouse",
+      "password": "wh123456",
+      "role": "warehouse_manager",
+      "roleLabel": "أمين مخزن إقليمي",
+      "phone": "",
+      "department": "المخازن الإقليمية (القرشية / المنيا / سوهاج)",
+      "status": "active",
+      "permissions": [
+        "missions_view",
+        "mission_deliver",
+        "warehouses_view"
+      ],
+      "createdAt": "2026-01-01T08:00:00.000Z"
+    },
+    {
+      "id": "user-viewer-1",
+      "name": "مشاهد ومتابع",
+      "username": "viewer",
+      "password": "view1234",
+      "role": "viewer",
+      "roleLabel": "مشاهد واستعلام فقط",
+      "phone": "",
+      "department": "المتابعة والتقارير",
+      "status": "active",
+      "permissions": [
+        "dashboard_view",
+        "reports_view"
+      ],
+      "createdAt": "2026-01-01T08:00:00.000Z"
+    }
+  ]
 }

@@ -497,17 +497,17 @@ function syncFleetStatus(db) {
   });
 
   // Track drivers on leave
-  const leaveDriverIds = new Set(
-    db.drivers
-      .filter(d => d.status === 'إجازة' || d.status === 'اجازة' || (typeof d.status === 'string' && d.status.includes('إجازة')))
-      .map(d => d.id)
+  const leaveDriversList = db.drivers.filter(d => 
+    d.status === 'إجازة' || d.status === 'اجازة' || (typeof d.status === 'string' && d.status.includes('إجازة'))
   );
+  const leaveDriverIds = new Set(leaveDriversList.map(d => d.id));
+  const leaveVehicleIds = new Set(leaveDriversList.map(d => d.assignedVehicleId).filter(Boolean));
 
   db.drivers.forEach(driver => {
     if (activeDriverMap.has(driver.id)) {
       driver.status = "في مأمورية";
       driver.activeMission = activeDriverMap.get(driver.id);
-    } else if (driver.status === 'إجازة' || driver.status === 'اجازة' || (typeof driver.status === 'string' && driver.status.includes('إجازة'))) {
+    } else if (leaveDriverIds.has(driver.id)) {
       driver.status = "إجازة";
       driver.activeMission = null;
     } else {
@@ -522,7 +522,7 @@ function syncFleetStatus(db) {
       vehicle.activeMission = activeVehicleMap.get(vehicle.id);
     } else if (vehicle.status === "صيانة") {
       vehicle.activeMission = null;
-    } else if (vehicle.driverId && leaveDriverIds.has(vehicle.driverId)) {
+    } else if ((vehicle.driverId && leaveDriverIds.has(vehicle.driverId)) || leaveVehicleIds.has(vehicle.id)) {
       vehicle.status = "سائق بإجازة";
       vehicle.activeMission = null;
     } else {

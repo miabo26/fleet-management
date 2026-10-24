@@ -317,6 +317,7 @@ export default function App() {
             onViewMission={(m) => setSelectedMissionDetails(m)}
             onPrintMission={(m) => setSelectedMissionToPrint(m)}
             onQuickStatusChange={handleQuickStatusChange}
+            onUpdateDriver={handleUpdateDriver}
             setActiveTab={setActiveTab}
             onOpenLicenseAlerts={() => setIsLicenseAlertsOpen(true)}
           />

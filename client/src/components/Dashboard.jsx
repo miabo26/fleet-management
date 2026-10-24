@@ -29,6 +29,7 @@ export default function Dashboard({
   onViewMission, 
   onPrintMission, 
   onQuickStatusChange,
+  onUpdateDriver,
   setActiveTab,
   onOpenLicenseAlerts
 }) {
@@ -37,6 +38,12 @@ export default function Dashboard({
 
   const activeMissions = missions.filter(m => ['assigned', 'loading', 'on_road'].includes(m.status));
   const completedMissions = missions.filter(m => m.status === 'completed');
+
+  // Absent / Drivers on leave
+  const leaveDrivers = drivers.filter(d => 
+    d.status === 'إجازة' || d.status === 'اجازة' || (typeof d.status === 'string' && d.status.includes('إجازة'))
+  );
+  const availableDrivers = drivers.filter(d => d.status === 'متاح');
 
   // Breakdown of vehicles
   const boxVehicles = vehicles.filter(v => v.type.includes('صندوق'));
@@ -214,13 +221,20 @@ export default function Dashboard({
             </span>
           </div>
           <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
-            <span>جاهزون للانطلاق: <strong className="text-emerald-600">{stats?.availableDrivers ?? 0}</strong></span>
-            <button 
-              onClick={() => setActiveTab('drivers')}
-              className="text-blue-600 hover:underline flex items-center gap-0.5 font-semibold cursor-pointer"
-            >
-              عرض الطاقم
-            </button>
+            <span>جاهزون: <strong className="text-emerald-600">{availableDrivers.length}</strong></span>
+            {leaveDrivers.length > 0 ? (
+              <span className="text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                <span>🏖️</span>
+                <span>{leaveDrivers.length} في إجازة</span>
+              </span>
+            ) : (
+              <button 
+                onClick={() => setActiveTab('drivers')}
+                className="text-blue-600 hover:underline flex items-center gap-0.5 font-semibold cursor-pointer"
+              >
+                عرض الطاقم
+              </button>
+            )}
           </div>
         </div>
 
@@ -277,183 +291,317 @@ export default function Dashboard({
 
       </div>
 
-      {/* Active Missions Section */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-5 md:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-amber-500 animate-pulse"></span>
-              <h3 className="text-lg font-black text-slate-900 m-0">المأموريات النشطة حالياً على الطريق والمخازن</h3>
+      {/* Active Missions & Absent / Leave Drivers (Side-by-Side) */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
+        
+        {/* Active Missions (Left 2 columns on xl) */}
+        <div className="xl:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+          <div className="p-5 md:p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-amber-500 animate-pulse"></span>
+                <h3 className="text-lg font-black text-slate-900 m-0">المأموريات النشطة حالياً على الطريق والمخازن</h3>
+                <span className="text-xs font-black bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full border border-amber-200">
+                  {activeMissions.length} جارية
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                متابعة حية لحالة التحميل، مسار الطريق، والتسليم اللوجستي للمخازن
+              </p>
             </div>
-            <p className="text-xs text-slate-500 mt-1">
-              متابعة حية لحالة التحميل، مسار الطريق، والتسليم اللوجستي للمخازن
-            </p>
-          </div>
-          <button
-            onClick={() => setActiveTab('missions')}
-            className="flex items-center gap-1.5 text-sm font-bold text-blue-600 hover:text-blue-700 cursor-pointer self-start sm:self-auto"
-          >
-            <span>عرض كل المأموريات والأرشيف</span>
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-        </div>
-
-        {activeMissions.length === 0 ? (
-          <div className="text-center py-12 px-4">
-            <div className="w-16 h-16 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 className="w-8 h-8 text-emerald-500" />
-            </div>
-            <h4 className="text-base font-bold text-slate-800">لا توجد مأموريات نشطة حالياً</h4>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-              جميع السيارات متوقفة بالجراج أو المخزن الرئيسي وجاهزة لتكليف مهام جديدة
-            </p>
             <button
-              onClick={onOpenNewMission}
-              className="mt-4 inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2 rounded-xl text-xs cursor-pointer shadow-md"
+              onClick={() => setActiveTab('missions')}
+              className="flex items-center gap-1.5 text-sm font-bold text-blue-600 hover:text-blue-700 cursor-pointer self-start sm:self-auto"
             >
-              <Plus className="w-4 h-4" />
-              إسناد مأمورية الآن
+              <span>عرض كل المأموريات والأرشيف</span>
+              <ChevronLeft className="w-4 h-4" />
             </button>
           </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {activeMissions.map((mission) => (
-              <div key={mission.id} className="p-5 md:p-6 hover:bg-slate-50/70 transition-colors">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-                  
-                  {/* Mission Summary */}
-                  <div className="space-y-3 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-xs font-black bg-slate-900 text-white px-2.5 py-1 rounded-md">
-                        {mission.missionNumber}
-                      </span>
-                      {getStatusBadge(mission.status)}
-                      <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">
-                        {mission.vehicleType}
-                      </span>
-                      <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-md border ${
-                        mission.occupancyDays === 3 
-                          ? 'bg-purple-50 text-purple-700 border-purple-200' 
-                          : mission.occupancyDays === 2 
-                          ? 'bg-amber-50 text-amber-700 border-amber-200' 
-                          : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      }`}>
-                        {mission.occupancyDays === 3 ? '🟣 إشغال 3 أيام (ذهاب + راحة + عودة)' : mission.occupancyDays === 2 ? '🟡 إشغال يومين (ذهاب وعودة الغد)' : '🟢 إشغال نفس اليوم'}
-                      </span>
-                      <span className="text-xs text-slate-400">
-                        {mission.dispatchOrderNumber}
-                      </span>
+
+          {activeMissions.length === 0 ? (
+            <div className="text-center py-12 px-4">
+              <div className="w-16 h-16 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 className="w-8 h-8 text-emerald-500" />
+              </div>
+              <h4 className="text-base font-bold text-slate-800">لا توجد مأموريات نشطة حالياً</h4>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                جميع السيارات متوقفة بالجراج أو المخزن الرئيسي وجاهزة لتكليف مهام جديدة
+              </p>
+              <button
+                onClick={onOpenNewMission}
+                className="mt-4 inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2 rounded-xl text-xs cursor-pointer shadow-md"
+              >
+                <Plus className="w-4 h-4" />
+                إسناد مأمورية الآن
+              </button>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {activeMissions.map((mission) => (
+                <div key={mission.id} className="p-5 md:p-6 hover:bg-slate-50/70 transition-colors">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+                    
+                    {/* Mission Summary */}
+                    <div className="space-y-3 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-mono text-xs font-black bg-slate-900 text-white px-2.5 py-1 rounded-md">
+                          {mission.missionNumber}
+                        </span>
+                        {getStatusBadge(mission.status)}
+                        <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md">
+                          {mission.vehicleType}
+                        </span>
+                        <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-md border ${
+                          mission.occupancyDays === 3 
+                            ? 'bg-purple-50 text-purple-700 border-purple-200' 
+                            : mission.occupancyDays === 2 
+                            ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        }`}>
+                          {mission.occupancyDays === 3 ? '🟣 إشغال 3 أيام (ذهاب + راحة + عودة)' : mission.occupancyDays === 2 ? '🟡 إشغال يومين (ذهاب وعودة الغد)' : '🟢 إشغال نفس اليوم'}
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          {mission.dispatchOrderNumber}
+                        </span>
+                      </div>
+
+                      <h4 className="text-base font-bold text-slate-900 m-0">
+                        {mission.title}
+                      </h4>
+
+                      {/* Route Line & Expected Return */}
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
+                        <span className="font-bold text-blue-700 flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-blue-600" />
+                          {mission.originName}
+                        </span>
+                        <span className="text-slate-400 font-bold">←</span>
+                        <span className="font-bold text-emerald-700 flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                          {mission.destinationName}
+                        </span>
+                        <span className="text-slate-400 mx-1">|</span>
+                        <span className="text-slate-600">
+                          المسافة: <strong>{mission.distanceKm || '---'} كم</strong>
+                        </span>
+                        <span className="text-slate-400 mx-1">|</span>
+                        <span className="text-blue-800 font-bold">
+                          العودة المتوقعة: {mission.expectedReturnDate ? new Date(mission.expectedReturnDate).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '---'}
+                        </span>
+                      </div>
+
+                      {/* Crew & Truck Details */}
+                      <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
+                        <div className="flex items-center gap-1.5">
+                          <Users className="w-3.5 h-3.5 text-indigo-500" />
+                          <span>السائق: <strong className="text-slate-900">{mission.driverName}</strong></span>
+                          <a href={`tel:${mission.driverPhone}`} className="text-blue-600 hover:underline">({mission.driverPhone})</a>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Truck className="w-3.5 h-3.5 text-blue-500" />
+                          <span>السيارة: <strong className="text-slate-900">{mission.vehicleCode}</strong> ({mission.vehiclePlate})</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Fuel className="w-3.5 h-3.5 text-amber-500" />
+                          <span>العهدة: <strong>{mission.cashAdvance} ج.م</strong></span>
+                        </div>
+                      </div>
                     </div>
 
-                    <h4 className="text-base font-bold text-slate-900 m-0">
-                      {mission.title}
-                    </h4>
+                    {/* Quick Status Action Controls */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
+                      {/* Status Changer Shortcuts */}
+                      {mission.status === 'assigned' && (
+                        <button
+                          onClick={() => onQuickStatusChange(mission.id, 'loading')}
+                          className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                        >
+                          <Clock className="w-3.5 h-3.5" />
+                          <span>بدء التحميل بالمخزن</span>
+                        </button>
+                      )}
 
-                    {/* Route Line & Expected Return */}
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-700 bg-slate-50 p-2.5 rounded-xl border border-slate-200/80">
-                      <span className="font-bold text-blue-700 flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-blue-600" />
-                        {mission.originName}
-                      </span>
-                      <span className="text-slate-400 font-bold">←</span>
-                      <span className="font-bold text-emerald-700 flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-                        {mission.destinationName}
-                      </span>
-                      <span className="text-slate-400 mx-1">|</span>
-                      <span className="text-slate-600">
-                        المسافة: <strong>{mission.distanceKm || '---'} كم</strong>
-                      </span>
-                      <span className="text-slate-400 mx-1">|</span>
-                      <span className="text-blue-800 font-bold">
-                        العودة المتوقعة: {mission.expectedReturnDate ? new Date(mission.expectedReturnDate).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '---'}
-                      </span>
+                      {mission.status === 'loading' && (
+                        <button
+                          onClick={() => onQuickStatusChange(mission.id, 'on_road')}
+                          className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                        >
+                          <Navigation className="w-3.5 h-3.5" />
+                          <span>الانطلاق على الطريق</span>
+                        </button>
+                      )}
+
+                      {mission.status === 'on_road' && (
+                        <button
+                          onClick={() => onQuickStatusChange(mission.id, 'delivered')}
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>تأكيد التسليم بالمخزن</span>
+                        </button>
+                      )}
+
+                      {mission.status === 'delivered' && (
+                        <button
+                          onClick={() => onQuickStatusChange(mission.id, 'completed')}
+                          className="bg-slate-800 hover:bg-slate-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>إغلاق وتسوية المأمورية</span>
+                        </button>
+                      )}
+
+                      {/* View Details Modal */}
+                      <button
+                        onClick={() => onViewMission(mission)}
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3.5 py-2 rounded-xl text-xs flex items-center justify-center gap-1 border border-slate-200 cursor-pointer"
+                      >
+                        <span>التفاصيل والتسوية</span>
+                      </button>
+
+                      {/* Print Slip */}
+                      <button
+                        onClick={() => onPrintMission(mission)}
+                        title="طباعة إذن تشغيل المأمورية"
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 p-2 rounded-xl text-xs flex items-center justify-center border border-slate-200 cursor-pointer"
+                      >
+                        <Printer className="w-4 h-4 text-slate-600" />
+                      </button>
                     </div>
 
-                    {/* Crew & Truck Details */}
-                    <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600">
-                      <div className="flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5 text-indigo-500" />
-                        <span>السائق: <strong className="text-slate-900">{mission.driverName}</strong></span>
-                        <a href={`tel:${mission.driverPhone}`} className="text-blue-600 hover:underline">({mission.driverPhone})</a>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Truck className="w-3.5 h-3.5 text-blue-500" />
-                        <span>السيارة: <strong className="text-slate-900">{mission.vehicleCode}</strong> ({mission.vehiclePlate})</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Fuel className="w-3.5 h-3.5 text-amber-500" />
-                        <span>العهدة: <strong>{mission.cashAdvance} ج.م</strong></span>
-                      </div>
-                    </div>
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
-                  {/* Quick Status Action Controls */}
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
-                    {/* Status Changer Shortcuts */}
-                    {mission.status === 'assigned' && (
-                      <button
-                        onClick={() => onQuickStatusChange(mission.id, 'loading')}
-                        className="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
-                      >
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>بدء التحميل بالمخزن</span>
-                      </button>
-                    )}
+        {/* Absent / On Leave Drivers Section (بجانب المأموريات النشطة) */}
+        <div className="xl:col-span-1 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
+          <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center font-bold text-base">
+                🏖️
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-black text-slate-900 m-0">السائقين المتغيبين / في إجازة</h3>
+                  <span className={`text-[11px] font-black px-2 py-0.5 rounded-full border ${
+                    leaveDrivers.length > 0 
+                      ? 'bg-rose-100 text-rose-800 border-rose-300 animate-pulse' 
+                      : 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                  }`}>
+                    {leaveDrivers.length} {leaveDrivers.length === 1 ? 'سائق' : 'سائقين'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  حجب تلقائي لشاحناتهم لمنع أي خلل
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveTab('drivers')}
+              className="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-0.5 cursor-pointer"
+            >
+              إدارة
+            </button>
+          </div>
 
-                    {mission.status === 'loading' && (
-                      <button
-                        onClick={() => onQuickStatusChange(mission.id, 'on_road')}
-                        className="bg-amber-600 hover:bg-amber-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
-                      >
-                        <Navigation className="w-3.5 h-3.5" />
-                        <span>الانطلاق على الطريق</span>
-                      </button>
-                    )}
-
-                    {mission.status === 'on_road' && (
-                      <button
-                        onClick={() => onQuickStatusChange(mission.id, 'delivered')}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>تأكيد التسليم بالمخزن</span>
-                      </button>
-                    )}
-
-                    {mission.status === 'delivered' && (
-                      <button
-                        onClick={() => onQuickStatusChange(mission.id, 'completed')}
-                        className="bg-slate-800 hover:bg-slate-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>إغلاق وتسوية المأمورية</span>
-                      </button>
-                    )}
-
-                    {/* View Details Modal */}
-                    <button
-                      onClick={() => onViewMission(mission)}
-                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3.5 py-2 rounded-xl text-xs flex items-center justify-center gap-1 border border-slate-200 cursor-pointer"
-                    >
-                      <span>التفاصيل والتسوية</span>
-                    </button>
-
-                    {/* Print Slip */}
-                    <button
-                      onClick={() => onPrintMission(mission)}
-                      title="طباعة إذن تشغيل المأمورية"
-                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 p-2 rounded-xl text-xs flex items-center justify-center border border-slate-200 cursor-pointer"
-                    >
-                      <Printer className="w-4 h-4 text-slate-600" />
-                    </button>
+          <div className="p-5 flex-1 flex flex-col justify-between">
+            {leaveDrivers.length === 0 ? (
+              <div className="text-center py-10 px-3 my-auto">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-3 shadow-xs">
+                  <CheckCircle2 className="w-7 h-7 text-emerald-600" />
+                </div>
+                <h4 className="text-sm font-black text-slate-900">طاقم السائقين بالكامل حاضر ومتاح</h4>
+                <p className="text-xs text-slate-500 mt-1.5 max-w-xs mx-auto leading-relaxed">
+                  لا توجد أي إجازات أو غيابات مسجلة حالياً، وجميع السيارات والسائقين في وضع الجاهزية التامة للانطلاق والتكليف.
+                </p>
+                <button
+                  onClick={() => setActiveTab('drivers')}
+                  className="mt-4 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  <span>تسجيل إجازة من طاقم السائقين</span>
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-rose-50 border border-rose-200/80 rounded-xl p-3 text-xs text-rose-900 flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold block">إجراء حماية حركة الأسطول مفعّل:</span>
+                    <span className="text-[11px] text-rose-800 leading-relaxed block mt-0.5">
+                      يتم تلقائياً استبعاد هؤلاء السائقين وحجب شاحناتهم من ترشيحات واختيارات المأموريات الجديدة لمنع أي خلل تشغيلي.
+                    </span>
                   </div>
+                </div>
 
+                <div className="space-y-3 divide-y divide-slate-100">
+                  {leaveDrivers.map(drv => {
+                    const assignedTruck = vehicles.find(v => v.driverId === drv.id || v.id === drv.assignedVehicleId);
+                    return (
+                      <div key={drv.id} className="pt-3 first:pt-0 space-y-2.5">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-sm text-slate-900">{drv.name}</span>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
+                                إجازة رسمية 🏖️
+                              </span>
+                            </div>
+                            <span className="text-[11px] text-slate-500 block mt-0.5 font-semibold">
+                              {drv.role} ({drv.vehicleCategory})
+                            </span>
+                          </div>
+
+                          {drv.phone && (
+                            <a 
+                              href={`tel:${drv.phone}`} 
+                              className="text-xs font-mono font-bold text-blue-600 hover:underline flex items-center gap-1 bg-white px-2 py-1 rounded-lg border border-slate-200 shadow-xs"
+                              dir="ltr"
+                            >
+                              <Phone className="w-3 h-3 text-blue-500" />
+                              {drv.phone}
+                            </a>
+                          )}
+                        </div>
+
+                        {/* Truck status pill */}
+                        <div className="bg-slate-50 rounded-xl p-2.5 border border-slate-200 flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <Truck className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="text-slate-500">الشاحنة المخصصة:</span>
+                            <strong className="text-slate-800">
+                              {assignedTruck ? `${assignedTruck.code} (${assignedTruck.plateNumber || 'بدون لوحات'})` : 'غير مسندة'}
+                            </strong>
+                          </div>
+                          <span className="text-[10px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                            🔒 سائق بإجازة
+                          </span>
+                        </div>
+
+                        {/* 1-Click Action to End Leave */}
+                        {onUpdateDriver && (
+                          <button
+                            type="button"
+                            onClick={() => onUpdateDriver(drv.id, { ...drv, status: 'متاح' })}
+                            className="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm shadow-emerald-600/20"
+                            title="إنهاء إجازة السائق وإعادة سيارته فوراً إلى قائمة الأسطول المتاح"
+                          >
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            <span>إنهاء الإجازة والعودة للعمل (متاح) ✅</span>
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-            ))}
+            )}
           </div>
-        )}
+        </div>
+
       </div>
 
       {/* Fleet Readiness Matrix: 3 Box + 3 Canter */}
@@ -506,6 +654,8 @@ export default function Dashboard({
                         ? 'bg-emerald-100 text-emerald-800' 
                         : veh.status === 'في مأمورية' 
                         ? 'bg-amber-100 text-amber-800' 
+                        : veh.status === 'سائق بإجازة'
+                        ? 'bg-purple-100 text-purple-800 border border-purple-200'
                         : 'bg-rose-100 text-rose-800'
                     }`}>
                       {veh.status}
@@ -564,6 +714,8 @@ export default function Dashboard({
                         ? 'bg-emerald-100 text-emerald-800' 
                         : veh.status === 'في مأمورية' 
                         ? 'bg-amber-100 text-amber-800' 
+                        : veh.status === 'سائق بإجازة'
+                        ? 'bg-purple-100 text-purple-800 border border-purple-200'
                         : 'bg-rose-100 text-rose-800'
                     }`}>
                       {veh.status}

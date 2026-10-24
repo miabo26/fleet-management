@@ -66,11 +66,13 @@ function calculateStats(db) {
   const totalDrivers = db.drivers.length;
   const availableDrivers = db.drivers.filter(d => d.status === 'متاح').length;
   const onMissionDrivers = db.drivers.filter(d => d.status === 'في مأمورية').length;
+  const leaveDrivers = db.drivers.filter(d => d.status === 'إجازة' || d.status === 'اجازة' || (typeof d.status === 'string' && d.status.includes('إجازة'))).length;
   
   const totalVehicles = db.vehicles.length;
   const availableVehicles = db.vehicles.filter(v => v.status === 'متاحة').length;
   const onMissionVehicles = db.vehicles.filter(v => v.status === 'في مأمورية').length;
   const maintenanceVehicles = db.vehicles.filter(v => v.status === 'صيانة').length;
+  const leaveVehicles = db.vehicles.filter(v => v.status === 'سائق بإجازة').length;
 
   const totalFuelCost = db.missions.reduce((acc, m) => acc + (Number(m.fuelExpense) || 0), 0);
   const totalTollsCost = db.missions.reduce((acc, m) => acc + (Number(m.tollExpense) || 0), 0);
@@ -115,10 +117,12 @@ function calculateStats(db) {
     totalDrivers,
     availableDrivers,
     onMissionDrivers,
+    leaveDrivers,
     totalVehicles,
     availableVehicles,
     onMissionVehicles,
     maintenanceVehicles,
+    leaveVehicles,
     totalFuelCost,
     totalTollsCost,
     totalAllowances,

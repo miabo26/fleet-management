@@ -196,11 +196,11 @@ export default function DriversManagement({
                       ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                       : driver.status === 'في مأمورية'
                       ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                      : driver.status === 'إجازة'
-                      ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                      : driver.status === 'إجازة' || driver.status === 'اجازة'
+                      ? 'bg-rose-100 text-rose-800 border border-rose-300 shadow-xs'
                       : 'bg-slate-100 text-slate-700 border border-slate-200'
                   }`}>
-                    {driver.status}
+                    {driver.status === 'إجازة' || driver.status === 'اجازة' ? '🏖️ في إجازة رسمية' : driver.status}
                   </span>
                 </div>
 
@@ -237,7 +237,14 @@ export default function DriversManagement({
                   </div>
                   <div className="flex items-center justify-between text-slate-600">
                     <span>الشاحنة المعتادة:</span>
-                    <strong className="text-slate-900">{assignedTruck ? `${assignedTruck.code} ${assignedTruck.plateNumber ? `(${assignedTruck.plateNumber})` : ''}` : 'حسب التكليف'}</strong>
+                    <div className="flex items-center gap-1.5 justify-end">
+                      <strong className="text-slate-900">{assignedTruck ? `${assignedTruck.code} ${assignedTruck.plateNumber ? `(${assignedTruck.plateNumber})` : ''}` : 'حسب التكليف'}</strong>
+                      {(driver.status === 'إجازة' || driver.status === 'اجازة') && (
+                        <span className="text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 px-1.5 py-0.5 rounded">
+                          محجوبة 🔒
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -277,21 +284,28 @@ export default function DriversManagement({
                     <button
                       type="button"
                       onClick={() => onUpdateDriver(driver.id, { ...driver, status: 'إجازة' })}
-                      className="px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200/80 text-[11px] font-bold transition-colors cursor-pointer"
-                      title="تسجيل أن السائق في إجازة رسمية لحجب شاحنته من المأموريات"
+                      className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold transition-all shadow-xs hover:shadow-sm cursor-pointer flex items-center gap-1"
+                      title="تسجيل أن السائق في إجازة رسمية لحجب شاحنته من المأموريات فوراً"
                     >
-                      تسجيل إجازة 🏖️
+                      <span>تسجيل إجازة</span>
+                      <span>🏖️</span>
                     </button>
                   )}
-                  {driver.status === 'إجازة' && (
+                  {(driver.status === 'إجازة' || driver.status === 'اجازة') && (
                     <button
                       type="button"
                       onClick={() => onUpdateDriver(driver.id, { ...driver, status: 'متاح' })}
-                      className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200/80 text-[11px] font-bold transition-colors cursor-pointer"
-                      title="عودة السائق للعمل وإتاحة شاحنته في التكليف"
+                      className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white border border-emerald-600 text-xs font-bold transition-all shadow-md shadow-emerald-600/20 cursor-pointer flex items-center gap-1"
+                      title="إنهاء الإجازة وعودة السائق وشاحنته للجاهزية الفورية"
                     >
-                      إنهاء الإجازة (متاح) ✅
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>إنهاء الإجازة (متاح)</span>
                     </button>
+                  )}
+                  {driver.status === 'في مأمورية' && (
+                    <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg">
+                      على الطريق 🚛
+                    </span>
                   )}
                   <button
                     onClick={() => openEditModal(driver)}
