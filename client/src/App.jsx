@@ -44,6 +44,21 @@ import { Loader2, RefreshCw, Phone, MessageCircle, ShieldCheck, Award } from 'lu
 export default function App() {
   const [currentUser, setCurrentUser] = useState(() => getStoredUser());
   const [authChecking, setAuthChecking] = useState(true);
+  const [theme, setTheme] = useState(() => localStorage.getItem('fleet_theme') || 'light');
+
+  // Sync theme with HTML root class
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('fleet_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  };
 
   const [data, setData] = useState({
     drivers: [],
@@ -278,7 +293,13 @@ export default function App() {
 
   // Gatekeeper: Protected Link — Unauthenticated users must log in
   if (!currentUser) {
-    return <LoginScreen onLoginSuccess={handleLogin} />;
+    return (
+      <LoginScreen 
+        onLoginSuccess={handleLogin} 
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
+    );
   }
 
   if (loading) {
@@ -292,7 +313,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col selection:bg-emerald-600 selection:text-white" dir="rtl">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col selection:bg-emerald-600 selection:text-white transition-colors duration-200" dir="rtl">
       
       {/* Top Navigation */}
       <Navbar
@@ -306,6 +327,8 @@ export default function App() {
         currentUser={currentUser}
         onLogout={handleLogout}
         usersCount={data.users?.length || 0}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       {/* Main Content Area */}

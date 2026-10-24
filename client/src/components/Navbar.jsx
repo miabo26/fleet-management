@@ -12,7 +12,9 @@ import {
   Bell,
   Award,
   LogOut,
-  UserCheck
+  UserCheck,
+  Sun,
+  Moon
 } from 'lucide-react';
 import EgyptPostLogo from './EgyptPostLogo';
 import { getFleetLicenseAlerts } from '../utils/licenseUtils';
@@ -27,7 +29,9 @@ export default function Navbar({
   onOpenLicenseAlerts,
   currentUser,
   onLogout,
-  usersCount = 0
+  usersCount = 0,
+  theme = 'light',
+  onToggleTheme
 }) {
   const alertsData = getFleetLicenseAlerts(vehicles, drivers);
   const urgentAlertsCount = alertsData.urgentCount;
@@ -91,9 +95,31 @@ export default function Navbar({
             <span className="text-slate-400 text-[11px]">| مدير ادارة الدعم والمتابعة</span>
           </div>
 
-          {/* Left: Quick Actions (Bell + New Mission + User Profile & Logout) */}
+          {/* Left: Quick Actions (Theme Toggle + Bell + New Mission + User Profile & Logout) */}
           <div className="flex items-center gap-2">
             
+            {/* Theme Toggle Button: Day / Night */}
+            {onToggleTheme && (
+              <button
+                type="button"
+                onClick={onToggleTheme}
+                className="p-2 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700 text-amber-300 hover:text-amber-200 transition-all cursor-pointer flex items-center gap-1.5 text-xs font-bold"
+                title={theme === 'dark' ? 'التحويل إلى الوضع النهاري ☀️' : 'التحويل إلى الوضع الليلي 🌙'}
+              >
+                {theme === 'dark' ? (
+                  <>
+                    <Sun className="w-4 h-4 text-amber-400" />
+                    <span className="hidden sm:inline text-amber-300">الوضع النهاري</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="w-4 h-4 text-indigo-300" />
+                    <span className="hidden sm:inline text-slate-200">الوضع الليلي</span>
+                  </>
+                )}
+              </button>
+            )}
+
             {/* License Expiry Bell Notification */}
             <button
               onClick={onOpenLicenseAlerts}
