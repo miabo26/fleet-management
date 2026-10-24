@@ -17,6 +17,7 @@ import MissionDetailsModal from './components/MissionDetailsModal';
 import PrintableTripSheet from './components/PrintableTripSheet';
 import LicenseAlertsModal from './components/LicenseAlertsModal';
 import EgyptPostLogo from './components/EgyptPostLogo';
+import PwaInstallPrompt from './components/PwaInstallPrompt';
 
 import { 
   fetchFullData, 
@@ -362,24 +363,30 @@ export default function App() {
   // Gatekeeper: Protected Link — Unauthenticated users must log in
   if (!currentUser) {
     return (
-      <LoginScreen 
-        onLoginSuccess={handleLogin}
-        onDriverLoginSuccess={handleDriverLogin}
-        theme={theme}
-        onToggleTheme={toggleTheme}
-      />
+      <>
+        <LoginScreen 
+          onLoginSuccess={handleLogin}
+          onDriverLoginSuccess={handleDriverLogin}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+        />
+        <PwaInstallPrompt />
+      </>
     );
   }
 
   // If logged in as driver, display the dedicated Driver Smart Portal
   if (currentUser.role === 'driver') {
     return (
-      <DriverPortal
-        driverData={currentUser.driverData}
-        onLogout={handleLogout}
-        theme={theme}
-        onToggleTheme={toggleTheme}
-      />
+      <>
+        <DriverPortal
+          driverData={currentUser.driverData}
+          onLogout={handleLogout}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+        />
+        <PwaInstallPrompt />
+      </>
     );
   }
 
@@ -593,6 +600,8 @@ export default function App() {
           setIsLicenseAlertsOpen(false);
         }}
       />
+
+      <PwaInstallPrompt />
 
     </div>
   );

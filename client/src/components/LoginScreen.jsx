@@ -19,7 +19,9 @@ import {
   X,
   PhoneCall,
   CreditCard,
-  Smartphone
+  Smartphone,
+  Download,
+  Share
 } from 'lucide-react';
 import EgyptPostLogo from './EgyptPostLogo';
 import { fetchDriversPortalList, driverLogin } from '../services/api';
@@ -43,6 +45,31 @@ export default function LoginScreen({
   });
   const [driverNationalIdPin, setDriverNationalIdPin] = useState('');
   const [showDriverPin, setShowDriverPin] = useState(false);
+
+  // PWA Install state
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+  useEffect(() => {
+    const handleBeforeInstall = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstall);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+  }, []);
+
+  const handleTriggerInstall = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      if (choice.outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    } else {
+      setShowInstallGuide(true);
+    }
+  };
 
   // Emergency SOS Modal state
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
@@ -418,6 +445,16 @@ ${gpsLocation ? gpsLocation : 'جاري تحديد الإحداثيات (يرج�
                 </span>
               </div>
 
+              {/* Direct Install PWA Button */}
+              <button
+                type="button"
+                onClick={handleTriggerInstall}
+                className="w-full py-2.5 px-3 rounded-xl bg-slate-800/90 hover:bg-slate-700/90 border border-emerald-500/30 text-emerald-300 hover:text-emerald-200 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm"
+              >
+                <Download className="w-4 h-4 text-amber-400" />
+                <span>تنزيل وتثبيت التطبيق كأيقونة على الموبايل 📲</span>
+              </button>
+
             </form>
           )}
 
@@ -675,6 +712,65 @@ ${gpsLocation ? gpsLocation : 'جاري تحديد الإحداثيات (يرج�
             <div className="text-center text-[10px] text-slate-400 pt-1">
               إدارة أسطول النقل والمخازن — الهيئة القومية للبريد المصري
             </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* 📲 PWA INSTALLATION GUIDE MODAL */}
+      {showInstallGuide && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-slate-900 border-2 border-emerald-500/50 rounded-3xl p-5 sm:p-6 w-full max-w-md space-y-4 shadow-2xl text-white relative">
+            
+            <button
+              onClick={() => setShowInstallGuide(false)}
+              className="absolute top-4 left-4 p-1.5 rounded-full bg-slate-800 text-slate-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center pt-2">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-600/30 border border-emerald-500/40 flex items-center justify-center mb-3">
+                <Smartphone className="w-8 h-8 text-amber-400" />
+              </div>
+              <h3 className="font-black text-base sm:text-lg text-white">
+                تثبيت المنظومة كتطبيق على هاتفك 📲
+              </h3>
+              <p className="text-xs text-slate-300 mt-1">
+                ينزل التطبيق مباشرة على شاشة هاتفك الرئيسية ويعمل بسرعة فائقة وبدون شريط المتصفح
+              </p>
+            </div>
+
+            {/* Android Instructions */}
+            <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700 space-y-2 text-xs">
+              <div className="flex items-center gap-2 text-emerald-400 font-bold">
+                <span>🤖 لهواتف أندرويد (Chrome / سامسونج):</span>
+              </div>
+              <ol className="list-decimal list-inside space-y-1.5 text-slate-200 text-[11px] leading-relaxed">
+                <li>اضغط على زر خيارات المتصفح (الثلاث نقاط <strong>⋮</strong> بأعلى الشاشة).</li>
+                <li>اضغط على خيار <strong className="text-amber-300">"تثبيت التطبيق"</strong> أو <strong className="text-amber-300">"إضافة إلى الشاشة الرئيسية"</strong>.</li>
+                <li>ستظهر أيقونة التطبيق الخضراء فوراً على شاشة هاتفك مثل أي تطبيق عادي!</li>
+              </ol>
+            </div>
+
+            {/* iPhone Instructions */}
+            <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700 space-y-2 text-xs">
+              <div className="flex items-center gap-2 text-blue-400 font-bold">
+                <span>🍏 لهواتف آيفون (Apple Safari):</span>
+              </div>
+              <ol className="list-decimal list-inside space-y-1.5 text-slate-200 text-[11px] leading-relaxed">
+                <li>اضغط على زر المشاركة <Share className="w-3.5 h-3.5 text-blue-400 inline" /> (Share) في أسفل المتصفح.</li>
+                <li>مرر لأسفل واختر <strong className="text-amber-300">"إضافة إلى الشاشة الرئيسية" ➕ (Add to Home Screen)</strong>.</li>
+                <li>اضغط <strong>"إضافة" (Add)</strong> بأعلى اليمين لتثبيته.</li>
+              </ol>
+            </div>
+
+            <button
+              onClick={() => setShowInstallGuide(false)}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm cursor-pointer shadow-lg"
+            >
+              فهمت الخطوات، إغلاق
+            </button>
 
           </div>
         </div>
