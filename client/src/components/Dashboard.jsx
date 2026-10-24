@@ -198,8 +198,8 @@ export default function Dashboard({
             </span>
           </div>
           <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-600">
-            <span>📦 3 سيارات صندوق</span>
-            <span>🚛 3 كانتر شاسيه طويل</span>
+            <span>📦 {boxVehicles.length} سيارات صندوق</span>
+            <span>🚛 {canterVehicles.length} كانتر شاسيه طويل</span>
           </div>
         </div>
 

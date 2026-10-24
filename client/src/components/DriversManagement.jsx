@@ -158,8 +158,26 @@ export default function DriversManagement({
       </div>
 
       {/* Drivers Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filteredDrivers.map(driver => {
+      {filteredDrivers.length === 0 ? (
+        <div className="bg-white rounded-3xl p-12 text-center border-2 border-dashed border-slate-200">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4">
+            <Users className="w-8 h-8" />
+          </div>
+          <h3 className="text-base font-bold text-slate-900">لا يوجد سائقين مسجلين حالياً بالأسطول</h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+            المنظومة مهيأة وجاهزة لتسجيل السائقين الفعليين فقط. اضغط على الزر أدناه لإضافة بيانات السائق الفعلي.
+          </p>
+          <button
+            onClick={openAddModal}
+            className="mt-4 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs inline-flex items-center gap-2 cursor-pointer shadow-md shadow-indigo-600/30"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>إضافة سائق فعلي جديد للأسطول</span>
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredDrivers.map(driver => {
           const isCanter = driver.vehicleCategory.includes('كانتر');
           const assignedTruck = vehicles.find(v => v.id === driver.assignedVehicleId);
 
@@ -331,7 +349,8 @@ export default function DriversManagement({
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
 
       {/* Add / Edit Driver Modal */}
       {isModalOpen && (

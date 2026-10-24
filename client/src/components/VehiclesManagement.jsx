@@ -167,8 +167,26 @@ export default function VehiclesManagement({
       </div>
 
       {/* Vehicles Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filteredVehicles.map(veh => {
+      {filteredVehicles.length === 0 ? (
+        <div className="bg-white rounded-3xl p-12 text-center border-2 border-dashed border-slate-200">
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
+            <Truck className="w-8 h-8" />
+          </div>
+          <h3 className="text-base font-bold text-slate-900">لا توجد شاحنات مسجلة حالياً بالأسطول</h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+            المنظومة مهيأة وجاهزة لتسجيل سيارات الأسطول الفعلية فقط. اضغط على الزر أدناه لإضافة بيانات الشاحنة الفعلية.
+          </p>
+          <button
+            onClick={openAddModal}
+            className="mt-4 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs inline-flex items-center gap-2 cursor-pointer shadow-md shadow-blue-600/30"
+          >
+            <Plus className="w-4 h-4" />
+            <span>إضافة شاحنة فعلية جديدة للأسطول</span>
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredVehicles.map(veh => {
           const assignedDriver = drivers.find(d => d.id === veh.driverId);
           const isBox = veh.type.includes('صندوق');
 
@@ -313,7 +331,8 @@ export default function VehiclesManagement({
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
 
       {/* Add / Edit Vehicle Modal */}
       {isModalOpen && (
