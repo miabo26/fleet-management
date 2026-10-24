@@ -59,8 +59,8 @@ export default function Navbar({
     { id: 'maintenance', label: 'الصيانة', icon: Wrench },
   ];
 
-  // Audit Logs Tab for Supervisors & Admins
-  if (currentUser?.role === 'admin' || currentUser?.role === 'dispatcher') {
+  // Audit Logs Tab for Admin ONLY
+  if (currentUser?.role === 'admin') {
     tabs.push({
       id: 'audit-logs',
       label: 'سجل العمليات والرقابة',

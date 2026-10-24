@@ -458,7 +458,7 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'audit-logs' && (currentUser?.role === 'admin' || currentUser?.role === 'dispatcher') && (
+        {activeTab === 'audit-logs' && currentUser?.role === 'admin' && (
           <AuditLogs
             auditLogs={data.auditLogs || []}
             currentUser={currentUser}

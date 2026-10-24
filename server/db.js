@@ -377,6 +377,19 @@ const initialData = {
       createdAt: "2026-01-01T08:00:00.000Z"
     },
     {
+      id: "user-ahmed-1",
+      name: "أحمد",
+      username: "ahmed",
+      password: "123456",
+      role: "dispatcher",
+      roleLabel: "مسؤول حركة وتشغيل",
+      phone: "",
+      department: "جراج السيارات المركزي - شبرا",
+      status: "active",
+      permissions: ["missions_create", "missions_manage", "fleet_view", "drivers_view", "print_trips"],
+      createdAt: "2026-01-01T08:00:00.000Z"
+    },
+    {
       id: "user-warehouse-1",
       name: "مسؤول استلام المخازن",
       username: "warehouse",

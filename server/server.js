@@ -379,11 +379,17 @@ app.get('/api/data', (req, res) => {
   writeDb(db);
   const stats = calculateStats(db);
   const sanitizedUsers = (db.users || []).map(u => sanitizeUser(u));
-  res.json({ ...db, users: sanitizedUsers, stats, auditLogs: db.auditLogs || [] });
+  const actor = getActorUser(req);
+  const auditLogs = actor?.role === 'admin' ? (db.auditLogs || []) : [];
+  res.json({ ...db, users: sanitizedUsers, stats, auditLogs });
 });
 
-// GET Audit Logs
+// GET Audit Logs (Admin ONLY)
 app.get('/api/audit-logs', (req, res) => {
+  const actor = getActorUser(req);
+  if (actor?.role !== 'admin') {
+    return res.status(403).json({ error: 'صلاحية استعراض سجل الرقابة والعمليات قاصرة على مدير عام المنظومة فقط' });
+  }
   const db = readDb();
   res.json(db.auditLogs || []);
 });

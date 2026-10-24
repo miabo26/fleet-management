@@ -365,9 +365,42 @@
         "reports_view"
       ],
       "createdAt": "2026-01-01T08:00:00.000Z"
+    },
+    {
+      "id": "user-ahmed-1",
+      "name": "أحمد",
+      "username": "ahmed",
+      "password": "123456",
+      "role": "dispatcher",
+      "roleLabel": "مسؤول حركة وتشغيل",
+      "phone": "",
+      "department": "جراج السيارات المركزي - شبرا",
+      "status": "active",
+      "permissions": [
+        "missions_create",
+        "missions_manage",
+        "fleet_view",
+        "drivers_view",
+        "print_trips"
+      ],
+      "createdAt": "2026-01-01T08:00:00.000Z"
     }
   ],
   "auditLogs": [
+    {
+      "id": "log-1792869448073-860",
+      "timestamp": "2026-10-24T19:17:28.073Z",
+      "actionType": "auth_login",
+      "actionLabel": "تسجيل دخول معتمد",
+      "entity": "auth",
+      "entityId": "user-ahmed-1",
+      "details": "قام المستخدم (أحمد - مسؤول حركة وتشغيل) بتسجيل الدخول إلى المنظومة بنجاح",
+      "userId": "user-ahmed-1",
+      "userName": "أحمد",
+      "userRole": "dispatcher",
+      "userPhone": "",
+      "userDepartment": "جراج السيارات المركزي - شبرا"
+    },
     {
       "id": "log-1792869130814-566",
       "timestamp": "2026-10-24T19:12:10.814Z",
