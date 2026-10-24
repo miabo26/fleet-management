@@ -555,17 +555,49 @@ export default function DriverPortal({
 
               {/* Direct WhatsApp Emergency link */}
               <a
-                href={`https://wa.me/201159700466?text=${encodeURIComponent(`🚨 استغاثة عطل طارئ من السائق: ${driver?.name || ''}
-الشاحنة: ${assignedVehicle?.code || ''} (${assignedVehicle?.plateNumber || ''})
-المشكلة: ${emergencyForm.issueType}
-الموقع: ${emergencyForm.location || 'على طريق السير'}
-التفاصيل: ${emergencyForm.description || 'أحتاج ونش أو دعم فني فوراً'}`)}`}
+                href={(() => {
+                  const now = new Date();
+                  const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+                  const dateStr = now.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                  const text = `🚨 *بلاغ استغاثة وعطل طارئ على الطريق* 🚨
+━━━━━━━━━━━━━━━━━━━━━
+🏢 *الهيئة القومية للبريد المصري*
+🚚 *قطاع تشغيل وحركة الأسطول — غرفة العمليات والطوارئ*
+━━━━━━━━━━━━━━━━━━━━━
+
+👤 *بيانات السائق المُبلّغ:*
+• الاسم: الأسطى / ${driver?.name || 'سائق بالأسطول'}
+• الهاتف: ${driver?.phone || '01xxxxxxxxx'}
+
+🚛 *بيانات الشاحنة والحمولة:*
+• الشاحنة: ${assignedVehicle?.code || 'شاحنة الأسطول'} (${assignedVehicle?.type || ''})
+• رقم اللوحات: ${assignedVehicle?.plateNumber || 'لوحات النقل الرسمية'}
+• نوع الحمولة: ${activeMission?.cargoType || 'مهمات ومطبوعات بريدية رسمية'}
+
+📍 *بيانات خط السير والمأمورية:*
+• رقم المأمورية: ${activeMission?.missionNumber || 'مأمورية جارية'}
+• خط السير: من [${activeMission?.originName || 'المخزن الرئيسي بالتجمع'}] إلى [${activeMission?.destinationName || 'المخزن الإقليمي'}]
+• العهدة النقدية: ${activeMission?.cashAdvance || 0} ج.م
+
+⚠️ *تفاصيل البلاغ والعطل الميداني:*
+• نوع المشكلة: ${emergencyForm.issueType}
+• وصف العطل وما يلزم: ${emergencyForm.description || 'توقف مفاجئ وبحاجة لدعم فني'}
+• الموقع والعلامة المميزة: ${emergencyForm.location || 'على خط السير'}
+
+🛡️ *حالة الأمان والشحنة:*
+الشاحنة متوقفة بالجانب الآمن من الطريق والحمولة مؤمنة بالكامل دون أي تلفيات.
+
+⏱️ *توقيت وتاريخ البلاغ:* ${timeStr} — ${dateStr}
+━━━━━━━━━━━━━━━━━━━━━
+📞 *موجه إلى:* م/ محمد ابراهيم ابوالمعاطى — مدير إدارة الدعم والمتابعة`;
+                  return `https://wa.me/201159700466?text=${encodeURIComponent(text)}`;
+                })()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer"
+                className="w-full py-3 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
               >
                 <MessageCircle className="w-4 h-4" />
-                <span>إرسال استغاثة فورية بالواتساب 📲</span>
+                <span>إرسال البلاغ المفصل فوراً عبر واتساب 📲</span>
               </a>
 
               <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-800">

@@ -56,7 +56,11 @@ export default function LoginScreen({
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
   const [gpsLocation, setGpsLocation] = useState('');
   const [isGettingGps, setIsGettingGps] = useState(false);
-  const [emergencyIssue, setEmergencyIssue] = useState('عطل ميكانيكي طارئ على الطريق');
+  const [emergencyDriverId, setEmergencyDriverId] = useState('');
+  const [emergencyIssue, setEmergencyIssue] = useState('انفجار إطار الشاحنة (كاوتش) وتوقف بالكامل');
+  const [emergencyAidNeeded, setEmergencyAidNeeded] = useState('طاقم إصلاح وتغيير إطارات (كاوتش)');
+  const [emergencyLocationNotes, setEmergencyLocationNotes] = useState('');
+  const [emergencyNotes, setEmergencyNotes] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -155,14 +159,42 @@ export default function LoginScreen({
     );
   };
 
-  // Build emergency WhatsApp URL
+  // Build emergency WhatsApp URL with rich structured operational details
   const buildEmergencyWhatsAppUrl = () => {
-    const text = `🚨 *بلاغ استغاثة وعطل طارئ على الطريق*
-الهيئة القومية للبريد المصري — أسطول النقل والمخازن
-⚠️ المشكلة: ${emergencyIssue}
-${gpsLocation ? `📍 موقعي على الخريطة (Google Maps):\n${gpsLocation}` : '📍 الموقع: على خط السير (يرجى الاتصال بي فوراً)'}
+    const selectedDriverObj = driversList.find(d => d.id === (emergencyDriverId || selectedDriverId));
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
+    const dateStr = now.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-برجاء توجيه الدعم الفني أو ونش الإنقاذ فوراً.`;
+    const text = `🚨 *بلاغ استغاثة وعطل طارئ على الطريق* 🚨
+━━━━━━━━━━━━━━━━━━━━━
+🏢 *الهيئة القومية للبريد المصري*
+🚚 *قطاع تشغيل وحركة الأسطول — غرفة العمليات والطوارئ*
+━━━━━━━━━━━━━━━━━━━━━
+
+👤 *بيانات السائق المُبلّغ:*
+• الاسم: ${selectedDriverObj ? `الأسطى / ${selectedDriverObj.name}` : 'سائق بأسطول النقل'}
+• الهاتف: ${selectedDriverObj?.phone || 'مرفق بالمحادثة'}
+
+🚛 *بيانات الشاحنة والحمولة:*
+• الشاحنة: ${selectedDriverObj?.vehicleCode || 'شاحنة الأسطول'} ${selectedDriverObj?.vehicleCategory ? `(${selectedDriverObj.vehicleCategory})` : ''}
+• رقم اللوحات المعدنية: ${selectedDriverObj?.vehiclePlate || 'لوحات النقل الرسمية'}
+• نوع الحمولة: مهمات ومطبوعات بريدية رسمية
+
+⚠️ *تفاصيل البلاغ والعطل الميداني:*
+• نوع المشكلة: ${emergencyIssue}
+• ما يلزم للدعم فوراً: ${emergencyAidNeeded || 'ونش أو دعم فني'}
+${emergencyLocationNotes ? `• العلامة المميزة على الطريق: ${emergencyLocationNotes}\n` : ''}${emergencyNotes ? `• ملاحظات السائق: ${emergencyNotes}\n` : ''}
+🛡️ *حالة الأمان والشحنة:*
+الشاحنة متوقفة بالجانب الآمن من الطريق والحمولة مؤمنة بالكامل دون أي تلفيات.
+
+📍 *موقعي الدقيق على الخريطة (Google Maps):*
+${gpsLocation ? gpsLocation : 'جاري تحديد الإحداثيات (يرجى الاتصال بي فوراً)'}
+
+⏱️ *توقيت وتاريخ البلاغ:* ${timeStr} — ${dateStr}
+━━━━━━━━━━━━━━━━━━━━━
+📞 *موجه إلى:* م/ محمد ابراهيم ابوالمعاطى — مدير إدارة الدعم والمتابعة`;
+
     return `https://wa.me/201159700466?text=${encodeURIComponent(text)}`;
   };
 
@@ -597,54 +629,103 @@ ${gpsLocation ? `📍 موقعي على الخريطة (Google Maps):\n${gpsLoca
               </a>
 
               {/* Direct WhatsApp SOS Dispatch */}
-              <div className="bg-slate-800/80 p-3.5 rounded-2xl border border-slate-700 space-y-3">
+              <div className="bg-slate-800/80 p-3.5 rounded-2xl border border-slate-700 space-y-2.5">
                 <span className="text-xs font-bold text-slate-300 block">
-                  أو إرسال استغاثة طارئة على واتساب مع موقعك (GPS):
+                  أو إرسال بلاغ استغاثة تفصيلي على واتساب مع موقعك (GPS):
                 </span>
+
+                {/* Driver Identity */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">السائق المُبلّغ والشاحنة:</label>
+                  <select
+                    value={emergencyDriverId || selectedDriverId}
+                    onChange={e => setEmergencyDriverId(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white font-bold"
+                  >
+                    {driversList.map(d => (
+                      <option key={d.id} value={d.id}>
+                        الأسطى / {d.name} {d.vehicleCode ? `(${d.vehicleCode} - ${d.vehiclePlate})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
                 {/* Issue Selector */}
                 <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">نوع المشكلة / العطل:</label>
                   <select
                     value={emergencyIssue}
                     onChange={e => setEmergencyIssue(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-white font-bold"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white font-bold"
                   >
-                    <option value="عطل ميكانيكي طارئ في المحرك أو الفتيس">عطل ميكانيكي طارئ في المحرك أو الفتيس</option>
                     <option value="انفجار إطار الشاحنة (كاوتش) وتوقف بالكامل">انفجار إطار الشاحنة (كاوتش) وتوقف بالكامل</option>
+                    <option value="عطل ميكانيكي طارئ في المحرك أو الفتيس">عطل ميكانيكي طارئ في المحرك أو الفتيس</option>
                     <option value="عطل كهربائي وانقطاع الإنارة بالكامل">عطل كهربائي وانقطاع الإنارة بالكامل</option>
+                    <option value="ارتفاع شديد في حرارة المحرك وتوقف التبريد">ارتفاع شديد في حرارة المحرك وتوقف التبريد</option>
                     <option value="توقف أمني أو مشكلة على الطريق الصحراوي">توقف أمني أو مشكلة على الطريق الصحراوي</option>
                     <option value="حادث سير لا قدر الله وبحاجة لوحدة إسعاف وونش">حادث سير لا قدر الله وبحاجة لوحدة إسعاف وونش</option>
                     <option value="نفاد السولار">نفاد السولار</option>
                   </select>
                 </div>
 
-                {/* GPS Location Button */}
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleDetectGps}
-                    disabled={isGettingGps}
-                    className="flex-1 py-2 px-3 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-300 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                {/* Aid Needed */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">ما يلزم للدعم فوراً:</label>
+                  <select
+                    value={emergencyAidNeeded}
+                    onChange={e => setEmergencyAidNeeded(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white font-bold"
                   >
-                    <Locate className={`w-4 h-4 ${isGettingGps ? 'animate-spin' : ''}`} />
-                    <span>{isGettingGps ? 'جاري تحديد موقعك...' : gpsLocation ? 'تم تحديد موقعك ✓' : 'تحديد موقعي الحالي بالـ GPS 📍'}</span>
-                  </button>
+                    <option value="طاقم إصلاح وتغيير إطارات (كاوتش)">طاقم إصلاح وتغيير إطارات (كاوتش)</option>
+                    <option value="ونش سحب وإنقاذ شاحنات ثقيل">ونش سحب وإنقاذ شاحنات ثقيل</option>
+                    <option value="فني ميكانيكا محركات متنقل">فني ميكانيكا محركات متنقل</option>
+                    <option value="سيارة نقل بديلة لنقل وتأمين الحمولة">سيارة نقل بديلة لنقل وتأمين الحمولة</option>
+                    <option value="إسعاف وطوارئ طبية">إسعاف وطوارئ طبية</option>
+                  </select>
                 </div>
 
-                {gpsLocation && (
-                  <div className="text-[10px] text-emerald-400 font-mono truncate bg-slate-900 p-1.5 rounded-lg border border-slate-800">
-                    {gpsLocation}
-                  </div>
-                )}
+                {/* Location Landmark */}
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">اسم الطريق أو علامة مميزة تقريبية (اختياري):</label>
+                  <input
+                    type="text"
+                    placeholder="مثال: طريق الإسكندرية الزراعي بعد بنها بـ 10 كم"
+                    value={emergencyLocationNotes}
+                    onChange={e => setEmergencyLocationNotes(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white"
+                  />
+                </div>
 
+                {/* GPS Location Button */}
+                <div className="pt-1">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleDetectGps}
+                      disabled={isGettingGps}
+                      className="flex-1 py-2 px-3 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-300 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <Locate className={`w-4 h-4 ${isGettingGps ? 'animate-spin' : ''}`} />
+                      <span>{isGettingGps ? 'جاري تحديد موقعك...' : gpsLocation ? 'تم التقاط الموقع بالـ GPS ✓' : 'تحديد موقعي الحالي بالـ GPS 📍'}</span>
+                    </button>
+                  </div>
+
+                  {gpsLocation && (
+                    <div className="text-[10px] text-emerald-400 font-mono truncate bg-slate-900 p-1.5 rounded-lg border border-slate-800 mt-1">
+                      {gpsLocation}
+                    </div>
+                  )}
+                </div>
+
+                {/* Send Button */}
                 <a
                   href={buildEmergencyWhatsAppUrl()}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
+                  className="w-full py-3 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition-all cursor-pointer mt-2"
                 >
                   <MessageCircle className="w-4 h-4" />
-                  <span>إرسال الاستغاثة فوراً عبر واتساب</span>
+                  <span>إرسال البلاغ المفصل فوراً عبر واتساب 📲</span>
                 </a>
               </div>
 
