@@ -726,11 +726,14 @@ app.post('/api/driver/login', (req, res) => {
   const { driverId, phone, nationalIdPin } = req.body;
 
   let driver = null;
-  if (driverId) {
-    driver = db.drivers.find(d => d.id === driverId);
-  } else if (phone && phone.trim()) {
+  if (phone && phone.trim()) {
     const cleanPhone = phone.trim().replace(/\D/g, '');
-    driver = db.drivers.find(d => d.phone && d.phone.replace(/\D/g, '') === cleanPhone);
+    driver = db.drivers.find(d => {
+      const dPhone = (d.phone || '').replace(/\D/g, '');
+      return dPhone && (dPhone === cleanPhone || dPhone.endsWith(cleanPhone) || cleanPhone.endsWith(dPhone));
+    });
+  } else if (driverId) {
+    driver = db.drivers.find(d => d.id === driverId);
   }
 
   if (!driver) {

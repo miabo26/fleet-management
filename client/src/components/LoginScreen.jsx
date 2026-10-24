@@ -5,7 +5,6 @@ import {
   User, 
   Eye, 
   EyeOff, 
-  ArrowLeft, 
   Award, 
   AlertCircle, 
   Truck, 
@@ -14,18 +13,13 @@ import {
   Moon,
   Phone,
   Navigation,
-  CheckCircle2,
   AlertTriangle,
-  Radio,
-  Search,
   MessageCircle,
-  MapPin,
   Locate,
   X,
   PhoneCall,
-  Sparkles,
   CreditCard,
-  ShieldAlert
+  Smartphone
 } from 'lucide-react';
 import EgyptPostLogo from './EgyptPostLogo';
 import { fetchDriversPortalList, driverLogin } from '../services/api';
@@ -43,20 +37,18 @@ export default function LoginScreen({
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // Driver portal login state
-  const [driversList, setDriversList] = useState([]);
-  const [selectedDriverId, setSelectedDriverId] = useState('');
+  // Driver portal login state: strictly Phone Number + Last 4 Digits of National ID (Zero public driver names)
+  const [driverPhone, setDriverPhone] = useState(() => {
+    return (typeof window !== 'undefined' && localStorage.getItem('fleet_saved_driver_phone')) || '';
+  });
   const [driverNationalIdPin, setDriverNationalIdPin] = useState('');
-  const [driverPhone, setDriverPhone] = useState('');
-  const [usePhoneMode, setUsePhoneMode] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
   const [showDriverPin, setShowDriverPin] = useState(false);
 
   // Emergency SOS Modal state
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
   const [gpsLocation, setGpsLocation] = useState('');
   const [isGettingGps, setIsGettingGps] = useState(false);
-  const [emergencyDriverId, setEmergencyDriverId] = useState('');
+  const [emergencyDriverName, setEmergencyDriverName] = useState('');
   const [emergencyIssue, setEmergencyIssue] = useState('انفجار إطار الشاحنة (كاوتش) وتوقف بالكامل');
   const [emergencyAidNeeded, setEmergencyAidNeeded] = useState('طاقم إصلاح وتغيير إطارات (كاوتش)');
   const [emergencyLocationNotes, setEmergencyLocationNotes] = useState('');
@@ -64,27 +56,6 @@ export default function LoginScreen({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  // Fetch drivers list on mount for driver portal tab
-  useEffect(() => {
-    fetchDriversPortalList()
-      .then(list => {
-        setDriversList(list || []);
-        if (list && list.length > 0) {
-          // Check if URL has driver param to preselect
-          if (typeof window !== 'undefined') {
-            const p = new URLSearchParams(window.location.search);
-            const urlD = p.get('driver');
-            if (urlD && list.some(d => d.id === urlD)) {
-              setSelectedDriverId(urlD);
-              return;
-            }
-          }
-          setSelectedDriverId(list[0].id);
-        }
-      })
-      .catch(err => console.error('Error fetching drivers for login:', err));
-  }, []);
 
   // Handle Admin / Staff Login
   const handleAdminSubmit = async (e) => {
@@ -105,33 +76,37 @@ export default function LoginScreen({
     }
   };
 
-  // Handle Driver Login with Last 4 Digits of National ID
+  // Handle Driver Login (Phone + Last 4 Digits of National ID)
   const handleDriverSubmit = async (e) => {
     e.preventDefault();
     
-    if (!driverNationalIdPin.trim() || driverNationalIdPin.trim().length !== 4) {
-      setError('يرجى إدخال آخر 4 أرقام من بطاقة الرقم القومي للتأكيد (4 أرقام)');
+    const cleanPhone = driverPhone.trim();
+    const cleanPin = driverNationalIdPin.trim();
+
+    if (!cleanPhone) {
+      setError('يرجى إدخال رقم هاتفك المحمول المسجل');
+      return;
+    }
+    if (!cleanPin || cleanPin.length !== 4) {
+      setError('يرجى إدخال آخر 4 أرقام من بطاقة الرقم القومي (4 أرقام)');
       return;
     }
 
     try {
       setLoading(true);
       setError('');
-      
-      const targetDriverId = !usePhoneMode ? selectedDriverId : null;
-      const targetPhone = usePhoneMode ? driverPhone.trim() : null;
 
-      const driverRes = await driverLogin(targetDriverId, targetPhone, driverNationalIdPin.trim());
+      const driverRes = await driverLogin(null, cleanPhone, cleanPin);
       
-      if (rememberMe) {
-        localStorage.setItem('fleet_driver_id', driverRes.driver.id);
-      }
+      // Save permanently on this phone for automatic next visits
+      localStorage.setItem('fleet_driver_id', driverRes.driver.id);
+      localStorage.setItem('fleet_saved_driver_phone', cleanPhone);
       
       if (onDriverLoginSuccess) {
         onDriverLoginSuccess(driverRes);
       }
     } catch (err) {
-      setError(err.message || 'رمز التحقق غير صحيح: يرجى التأكد من آخر 4 أرقام من الرقم القومي');
+      setError(err.message || 'بيانات الدخول غير صحيحة، تأكد من رقم الهاتف وآخر 4 أرقام من الرقم القومي');
     } finally {
       setLoading(false);
     }
@@ -161,7 +136,6 @@ export default function LoginScreen({
 
   // Build emergency WhatsApp URL with rich structured operational details
   const buildEmergencyWhatsAppUrl = () => {
-    const selectedDriverObj = driversList.find(d => d.id === (emergencyDriverId || selectedDriverId));
     const now = new Date();
     const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
     const dateStr = now.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -173,13 +147,8 @@ export default function LoginScreen({
 ━━━━━━━━━━━━━━━━━━━━━
 
 👤 *بيانات السائق المُبلّغ:*
-• الاسم: ${selectedDriverObj ? `الأسطى / ${selectedDriverObj.name}` : 'سائق بأسطول النقل'}
-• الهاتف: ${selectedDriverObj?.phone || 'مرفق بالمحادثة'}
-
-🚛 *بيانات الشاحنة والحمولة:*
-• الشاحنة: ${selectedDriverObj?.vehicleCode || 'شاحنة الأسطول'} ${selectedDriverObj?.vehicleCategory ? `(${selectedDriverObj.vehicleCategory})` : ''}
-• رقم اللوحات المعدنية: ${selectedDriverObj?.vehiclePlate || 'لوحات النقل الرسمية'}
-• نوع الحمولة: مهمات ومطبوعات بريدية رسمية
+• الاسم: ${emergencyDriverName.trim() ? `الأسطى / ${emergencyDriverName.trim()}` : (driverPhone.trim() ? `سائق برقم هاتف (${driverPhone.trim()})` : 'سائق بأسطول النقل')}
+• الهاتف: ${driverPhone.trim() || 'مرفق بالمحادثة'}
 
 ⚠️ *تفاصيل البلاغ والعطل الميداني:*
 • نوع المشكلة: ${emergencyIssue}
@@ -357,73 +326,40 @@ ${gpsLocation ? gpsLocation : 'جاري تحديد الإحداثيات (يرج�
             </div>
           )}
 
-          {/* MODE 1: SMART DRIVER LOGIN (WITH LAST 4 DIGITS OF NATIONAL ID) */}
+          {/* MODE 1: SMART DRIVER SECURE LOGIN (Phone Number + Last 4 Digits of National ID) */}
           {loginMode === 'driver' && (
             <form onSubmit={handleDriverSubmit} className="space-y-4 animate-in fade-in duration-200">
               
-              {/* Driver Selector or Phone Switcher */}
+              {/* Field 1: Driver Mobile Number */}
               <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className={`text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
-                    {usePhoneMode ? 'رقم هاتفك المسجل:' : 'اختر اسمك من قائمة السائقين:'}
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setUsePhoneMode(!usePhoneMode);
-                      setError('');
-                    }}
-                    className="text-[11px] text-blue-500 hover:underline font-bold cursor-pointer"
-                  >
-                    {usePhoneMode ? 'اختيار من القائمة' : 'أو برقم الهاتف 📱'}
-                  </button>
+                <label className={`block text-xs font-bold mb-1.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>
+                  رقم هاتف السائق المسجل بالهيئة:
+                </label>
+                <div className="relative">
+                  <input
+                    type="tel"
+                    required
+                    autoFocus
+                    placeholder="01xxxxxxxxx (رقم هاتفك المحمول)"
+                    value={driverPhone}
+                    onChange={e => setDriverPhone(e.target.value)}
+                    className={`w-full pl-3 pr-10 py-3 border rounded-xl text-xs sm:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-all font-mono ${
+                      isDark
+                        ? 'bg-slate-800/90 border-slate-700 text-white placeholder:text-slate-500'
+                        : 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400'
+                    }`}
+                    dir="ltr"
+                  />
+                  <Phone className="w-4 h-4 text-emerald-500 absolute right-3.5 top-3.5 pointer-events-none" />
                 </div>
-
-                {!usePhoneMode ? (
-                  <div className="relative">
-                    <select
-                      value={selectedDriverId}
-                      onChange={e => setSelectedDriverId(e.target.value)}
-                      className={`w-full pl-3 pr-10 py-3 border rounded-xl text-xs sm:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-all ${
-                        isDark
-                          ? 'bg-slate-800/90 border-slate-700 text-white'
-                          : 'bg-slate-50 border-slate-300 text-slate-900'
-                      }`}
-                    >
-                      {driversList.map(d => (
-                        <option key={d.id} value={d.id}>
-                          الأسطى / {d.name} {d.vehicleCategory ? `(${d.vehicleCategory})` : ''}
-                        </option>
-                      ))}
-                    </select>
-                    <Truck className="w-4 h-4 text-emerald-500 absolute right-3.5 top-3.5 pointer-events-none" />
-                  </div>
-                ) : (
-                  <div className="relative">
-                    <input
-                      type="tel"
-                      placeholder="01xxxxxxxxx"
-                      value={driverPhone}
-                      onChange={e => setDriverPhone(e.target.value)}
-                      className={`w-full pl-3 pr-10 py-2.5 border rounded-xl text-xs sm:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-all font-mono ${
-                        isDark
-                          ? 'bg-slate-800/90 border-slate-700 text-white placeholder:text-slate-500'
-                          : 'bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400'
-                      }`}
-                      dir="ltr"
-                      autoFocus
-                    />
-                    <Phone className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5 pointer-events-none" />
-                  </div>
-                )}
               </div>
 
-              {/* Security PIN: Last 4 Digits of National ID */}
+              {/* Field 2: Last 4 Digits of National ID (Security PIN) */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className={`text-xs font-bold flex items-center gap-1.5 ${isDark ? 'text-amber-300' : 'text-amber-800'}`}>
                     <CreditCard className="w-4 h-4 text-amber-500" />
-                    <span>آخر 4 أرقام من الرقم القومي (رمز الأمان الشخصي):</span>
+                    <span>آخر 4 أرقام من الرقم القومي (رمز الأمان):</span>
                   </label>
                   <span className="text-[10px] text-slate-400 font-mono font-bold">4 أرقام</span>
                 </div>
@@ -440,7 +376,7 @@ ${gpsLocation ? gpsLocation : 'جاري تحديد الإحداثيات (يرج�
                       const val = e.target.value.replace(/\D/g, '').slice(0, 4);
                       setDriverNationalIdPin(val);
                     }}
-                    className={`w-full pl-10 pr-10 py-3 border rounded-xl text-center text-base sm:text-lg font-black tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all ${
+                    className={`w-full pl-10 pr-10 py-3 border rounded-xl text-center text-lg font-black tracking-widest font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 transition-all ${
                       isDark
                         ? 'bg-slate-800/95 border-amber-500/40 text-amber-300 placeholder:text-slate-500'
                         : 'bg-amber-50/50 border-amber-300 text-slate-900 placeholder:text-slate-400'
@@ -456,13 +392,9 @@ ${gpsLocation ? gpsLocation : 'جاري تحديد الإحداثيات (يرج�
                     {showDriverPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-
-                <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                  🔒 يمنع هذا الرمز أي شخص آخر من الدخول لمأموريتك أو عهدتك النقدية.
-                </p>
               </div>
 
-              {/* Driver Submit Button */}
+              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={loading}
@@ -478,18 +410,12 @@ ${gpsLocation ? gpsLocation : 'جاري تحديد الإحداثيات (يرج�
                 )}
               </button>
 
-              {/* Remember Me Checkbox */}
-              <div className="flex items-center gap-2 pt-1 border-t border-slate-800/60">
-                <input
-                  type="checkbox"
-                  id="rememberDriver"
-                  checked={rememberMe}
-                  onChange={e => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-700 bg-slate-800 cursor-pointer"
-                />
-                <label htmlFor="rememberDriver" className="text-[11px] text-slate-400 font-semibold cursor-pointer select-none">
-                  حفظ تسجيل دخولي على هذا الهاتف 📱 (تفتح البوابة فوراً في المرات القادمة)
-                </label>
+              {/* Permanent Login Notice */}
+              <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-center">
+                <span className="text-[11px] text-emerald-400 font-bold flex items-center justify-center gap-1.5">
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>يتم حفظ الجلسة دائماً على هاتفك وتفتح بوابتك مباشرة في المرات القادمة</span>
+                </span>
               </div>
 
             </form>
@@ -634,20 +560,16 @@ ${gpsLocation ? gpsLocation : 'جاري تحديد الإحداثيات (يرج�
                   أو إرسال بلاغ استغاثة تفصيلي على واتساب مع موقعك (GPS):
                 </span>
 
-                {/* Driver Identity */}
+                {/* Driver Name (Text input) */}
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">السائق المُبلّغ والشاحنة:</label>
-                  <select
-                    value={emergencyDriverId || selectedDriverId}
-                    onChange={e => setEmergencyDriverId(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white font-bold"
-                  >
-                    {driversList.map(d => (
-                      <option key={d.id} value={d.id}>
-                        الأسطى / {d.name} {d.vehicleCode ? `(${d.vehicleCode} - ${d.vehiclePlate})` : ''}
-                      </option>
-                    ))}
-                  </select>
+                  <label className="block text-[11px] font-bold text-slate-300 mb-1">اسم السائق المُبلّغ (اختياري):</label>
+                  <input
+                    type="text"
+                    placeholder="الأسطى / اكتب اسمك"
+                    value={emergencyDriverName}
+                    onChange={e => setEmergencyDriverName(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white"
+                  />
                 </div>
 
                 {/* Issue Selector */}
