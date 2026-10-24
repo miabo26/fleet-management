@@ -129,6 +129,16 @@ export async function deleteUser(id) {
   return data;
 }
 
+// ---------------- AUDIT LOGS API ---------------- //
+
+export async function fetchAuditLogs() {
+  const res = await fetch(`${API_BASE}/audit-logs`, {
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) throw new Error('فشل جلب سجل العمليات والرقابة');
+  return res.json();
+}
+
 // ---------------- FLEET & DATA API ---------------- //
 
 export async function fetchFullData() {

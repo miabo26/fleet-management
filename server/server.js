@@ -3,7 +3,7 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { readDb, writeDb, syncFleetStatus, getDestinationScheduleRule, initialData } = require('./db');
+const { readDb, writeDb, syncFleetStatus, getDestinationScheduleRule, initialData, recordAuditLog } = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -49,6 +49,18 @@ function getSessionUser(req) {
   if (!session || session.expiresAt < Date.now()) return null;
   const db = readDb();
   return db.users?.find(u => u.id === session.userId && u.status === 'active') || null;
+}
+
+function getActorUser(req) {
+  const sessionUser = getSessionUser(req);
+  if (sessionUser) return sessionUser;
+  return {
+    id: 'user-admin-1',
+    name: 'م/ محمد ابراهيم ابوالمعاطى',
+    role: 'admin',
+    phone: '01159700466',
+    department: 'إدارة الدعم والمتابعة - البريد المصري'
+  };
 }
 
 // Request logger
@@ -161,6 +173,17 @@ app.post('/api/auth/login', (req, res) => {
   }
 
   const token = generateToken(user);
+
+  recordAuditLog(db, {
+    actionType: 'auth_login',
+    actionLabel: 'تسجيل دخول معتمد',
+    entity: 'auth',
+    entityId: user.id,
+    details: `قام المستخدم (${user.name} - ${user.roleLabel}) بتسجيل الدخول إلى المنظومة بنجاح`,
+    user: sanitizeUser(user)
+  });
+  writeDb(db);
+
   res.json({
     message: 'تم تسجيل الدخول بنجاح',
     token,
@@ -239,6 +262,16 @@ app.post('/api/users', (req, res) => {
 
   if (!db.users) db.users = [];
   db.users.push(newUser);
+
+  recordAuditLog(db, {
+    actionType: 'create_user',
+    actionLabel: 'إنشاء حساب مستخدم جديد',
+    entity: 'user',
+    entityId: newUser.id,
+    details: `تم إنشاء حساب جديد للمستخدم (${newUser.name}) برتبة (${newUser.roleLabel}) واسم مستخدم (${newUser.username})`,
+    user: getActorUser(req)
+  });
+
   writeDb(db);
 
   res.status(201).json({
@@ -281,6 +314,15 @@ app.put('/api/users/:id', (req, res) => {
   if (password && String(password).trim().length > 0) existing.password = String(password).trim();
   if (Array.isArray(permissions)) existing.permissions = permissions;
 
+  recordAuditLog(db, {
+    actionType: 'update_user',
+    actionLabel: 'تعديل بيانات وصلاحيات مستخدم',
+    entity: 'user',
+    entityId: req.params.id,
+    details: `تم تحديث بيانات وصلاحيات المستخدم (${existing.name}) - الحالة: ${existing.status === 'active' ? 'نشط' : 'معطل'}`,
+    user: getActorUser(req)
+  });
+
   writeDb(db);
   res.json({
     message: 'تم تحديث بيانات المستخدم بنجاح',
@@ -300,7 +342,18 @@ app.delete('/api/users/:id', (req, res) => {
   }
 
   const db = readDb();
+  const userToDelete = (db.users || []).find(u => u.id === req.params.id);
   db.users = (db.users || []).filter(u => u.id !== req.params.id);
+
+  recordAuditLog(db, {
+    actionType: 'delete_user',
+    actionLabel: 'حذف حساب مستخدم',
+    entity: 'user',
+    entityId: req.params.id,
+    details: `تم حذف حساب المستخدم (${userToDelete ? userToDelete.name : req.params.id}) من المنظومة`,
+    user: getActorUser(req)
+  });
+
   writeDb(db);
 
   res.json({ message: 'تم حذف المستخدم بنجاح' });
@@ -315,7 +368,13 @@ app.get('/api/data', (req, res) => {
   writeDb(db);
   const stats = calculateStats(db);
   const sanitizedUsers = (db.users || []).map(u => sanitizeUser(u));
-  res.json({ ...db, users: sanitizedUsers, stats });
+  res.json({ ...db, users: sanitizedUsers, stats, auditLogs: db.auditLogs || [] });
+});
+
+// GET Audit Logs
+app.get('/api/audit-logs', (req, res) => {
+  const db = readDb();
+  res.json(db.auditLogs || []);
 });
 
 // GET Stats
@@ -417,6 +476,16 @@ app.post('/api/missions', (req, res) => {
 
   db.missions.unshift(newMission);
   syncFleetStatus(db);
+
+  recordAuditLog(db, {
+    actionType: 'create_mission',
+    actionLabel: 'إسناد مأمورية جديدة',
+    entity: 'mission',
+    entityId: newMission.id,
+    details: `تم إسناد مأمورية "${newMission.title}" برقم (${newMission.missionNumber}) للسائق (${newMission.driverName}) والسيارة (${newMission.vehicleCode}) متجهة إلى (${newMission.destinationName}) — طبيعة الحمولة: ${newMission.cargoType}`,
+    user: getActorUser(req)
+  });
+
   writeDb(db);
 
   res.status(201).json({ message: 'تم إنشاء المأمورية بنجاح', mission: newMission });
@@ -461,6 +530,27 @@ app.put('/api/missions/:id', (req, res) => {
     }
   }
 
+  const statusMap = {
+    assigned: 'تم التكليف',
+    loading: 'جارٍ التحميل',
+    on_road: 'على الطريق',
+    delivered: 'تم التسليم بالموقع',
+    completed: 'مكتملة ومغلقة',
+    cancelled: 'ملغاة'
+  };
+
+  const isStatusChange = existing.status !== updatedData.status;
+  recordAuditLog(db, {
+    actionType: isStatusChange ? 'mission_status' : 'update_mission',
+    actionLabel: isStatusChange ? `تحديث حالة مأمورية: ${statusMap[updatedData.status] || updatedData.status}` : 'تعديل بيانات مأمورية',
+    entity: 'mission',
+    entityId: updatedData.id,
+    details: isStatusChange 
+      ? `تم تغيير حالة المأمورية رقم (${updatedData.missionNumber}) من "${statusMap[existing.status] || existing.status}" إلى "${statusMap[updatedData.status] || updatedData.status}"`
+      : `تم تعديل بيانات وتكاليف المأمورية رقم (${updatedData.missionNumber})`,
+    user: getActorUser(req)
+  });
+
   db.missions[index] = updatedData;
   syncFleetStatus(db);
   writeDb(db);
@@ -471,8 +561,19 @@ app.put('/api/missions/:id', (req, res) => {
 // DELETE Mission
 app.delete('/api/missions/:id', (req, res) => {
   const db = readDb();
+  const deletedMission = db.missions.find(m => m.id === req.params.id);
   db.missions = db.missions.filter(m => m.id !== req.params.id);
   syncFleetStatus(db);
+
+  recordAuditLog(db, {
+    actionType: 'delete_mission',
+    actionLabel: 'حذف مأمورية',
+    entity: 'mission',
+    entityId: req.params.id,
+    details: `تم حذف المأمورية رقم (${deletedMission ? deletedMission.missionNumber : req.params.id}) من المنظومة`,
+    user: getActorUser(req)
+  });
+
   writeDb(db);
   res.json({ message: 'تم حذف المأمورية بنجاح' });
 });
@@ -506,6 +607,16 @@ app.post('/api/drivers', (req, res) => {
   };
 
   db.drivers.push(newDriver);
+
+  recordAuditLog(db, {
+    actionType: 'create_driver',
+    actionLabel: 'إضافة سائق جديد',
+    entity: 'driver',
+    entityId: newDriver.id,
+    details: `تم إضافة السائق (${newDriver.name}) - الفئة: ${newDriver.vehicleCategory} - هاتف: ${newDriver.phone || 'غير مسجل'}`,
+    user: getActorUser(req)
+  });
+
   writeDb(db);
   res.status(201).json({ message: 'تم إضافة السائق بنجاح', driver: newDriver });
 });
@@ -518,8 +629,35 @@ app.put('/api/drivers/:id', (req, res) => {
     return res.status(404).json({ error: 'السائق غير موجود' });
   }
 
-  db.drivers[index] = { ...db.drivers[index], ...req.body };
+  const existingDriver = db.drivers[index];
+  const updatedStatus = req.body.status;
+
+  let actionLabel = 'تعديل بيانات سائق';
+  let actionType = 'update_driver';
+  let details = `تم تعديل بيانات السائق (${existingDriver.name})`;
+
+  if (updatedStatus === 'إجازة' || updatedStatus === 'اجازة') {
+    actionType = 'driver_leave';
+    actionLabel = 'تسجيل إجازة رسمية لسائق (حجب الشاحنة)';
+    details = `تم تسجيل إجازة رسمية للسائق (${existingDriver.name}) وتم حجب شاحنته المخصصة تلقائياً لمنع أي خلل تشغيلي`;
+  } else if ((existingDriver.status === 'إجازة' || existingDriver.status === 'اجازة') && updatedStatus === 'متاح') {
+    actionType = 'driver_resume';
+    actionLabel = 'إنهاء إجازة سائق (عودة للعمل)';
+    details = `تم إنهاء إجازة السائق (${existingDriver.name}) وإعادة سيارته فوراً لأسطول المأموريات المتاح للتشغيل`;
+  }
+
+  db.drivers[index] = { ...existingDriver, ...req.body };
   syncFleetStatus(db);
+
+  recordAuditLog(db, {
+    actionType,
+    actionLabel,
+    entity: 'driver',
+    entityId: req.params.id,
+    details,
+    user: getActorUser(req)
+  });
+
   writeDb(db);
   res.json({ message: 'تم تحديث بيانات السائق', driver: db.drivers[index] });
 });
@@ -527,7 +665,19 @@ app.put('/api/drivers/:id', (req, res) => {
 // DELETE Driver
 app.delete('/api/drivers/:id', (req, res) => {
   const db = readDb();
+  const driverToDelete = db.drivers.find(d => d.id === req.params.id);
   db.drivers = db.drivers.filter(d => d.id !== req.params.id);
+  syncFleetStatus(db);
+
+  recordAuditLog(db, {
+    actionType: 'delete_driver',
+    actionLabel: 'حذف سائق من الأسطول',
+    entity: 'driver',
+    entityId: req.params.id,
+    details: `تم حذف السائق (${driverToDelete ? driverToDelete.name : req.params.id}) من طاقم السائقين`,
+    user: getActorUser(req)
+  });
+
   writeDb(db);
   res.json({ message: 'تم حذف السائق بنجاح' });
 });
@@ -565,6 +715,16 @@ app.post('/api/vehicles', (req, res) => {
   };
 
   db.vehicles.push(newVehicle);
+
+  recordAuditLog(db, {
+    actionType: 'create_vehicle',
+    actionLabel: 'إضافة شاحنة جديدة للأسطول',
+    entity: 'vehicle',
+    entityId: newVehicle.id,
+    details: `تم إضافة الشاحنة كود (${newVehicle.code}) برقم لوحات (${newVehicle.plateNumber}) - الفئة: ${newVehicle.type} - الموقع: ${newVehicle.currentLocation}`,
+    user: getActorUser(req)
+  });
+
   writeDb(db);
   res.status(201).json({ message: 'تم إضافة السيارة الجديدة بنجاح للأسطول', vehicle: newVehicle });
 });
@@ -578,6 +738,16 @@ app.put('/api/vehicles/:id', (req, res) => {
   }
 
   db.vehicles[index] = { ...db.vehicles[index], ...req.body };
+
+  recordAuditLog(db, {
+    actionType: 'update_vehicle',
+    actionLabel: 'تعديل بيانات شاحنة',
+    entity: 'vehicle',
+    entityId: req.params.id,
+    details: `تم تعديل بيانات الشاحنة (${db.vehicles[index].code} - ${db.vehicles[index].plateNumber}) - الموقع الحالي: ${db.vehicles[index].currentLocation}`,
+    user: getActorUser(req)
+  });
+
   writeDb(db);
   res.json({ message: 'تم تحديث بيانات السيارة', vehicle: db.vehicles[index] });
 });
@@ -585,7 +755,18 @@ app.put('/api/vehicles/:id', (req, res) => {
 // DELETE Vehicle
 app.delete('/api/vehicles/:id', (req, res) => {
   const db = readDb();
+  const vehicleToDelete = db.vehicles.find(v => v.id === req.params.id);
   db.vehicles = db.vehicles.filter(v => v.id !== req.params.id);
+
+  recordAuditLog(db, {
+    actionType: 'delete_vehicle',
+    actionLabel: 'حذف شاحنة من الأسطول',
+    entity: 'vehicle',
+    entityId: req.params.id,
+    details: `تم حذف الشاحنة (${vehicleToDelete ? vehicleToDelete.code : req.params.id}) من أسطول السيارات`,
+    user: getActorUser(req)
+  });
+
   writeDb(db);
   res.json({ message: 'تم حذف السيارة من الأسطول' });
 });
@@ -615,6 +796,16 @@ app.post('/api/warehouses', (req, res) => {
   };
 
   db.warehouses.push(newWarehouse);
+
+  recordAuditLog(db, {
+    actionType: 'create_warehouse',
+    actionLabel: 'إضافة موقع مخزن إقليمي',
+    entity: 'warehouse',
+    entityId: newWarehouse.id,
+    details: `تم إضافة الموقع/المخزن (${newWarehouse.name}) في محافظة/مدينة (${newWarehouse.city})`,
+    user: getActorUser(req)
+  });
+
   writeDb(db);
   res.status(201).json({ message: 'تم إضافة المخزن بنجاح', warehouse: newWarehouse });
 });
@@ -628,7 +819,6 @@ app.put('/api/warehouses/:id', (req, res) => {
   }
 
   const { capacity, ...rest } = req.body;
-  // Ensure capacity is removed completely
   delete db.warehouses[index].capacity;
 
   db.warehouses[index] = {
@@ -637,6 +827,15 @@ app.put('/api/warehouses/:id', (req, res) => {
     manager: rest.manager !== undefined ? String(rest.manager).trim() : (db.warehouses[index].manager || ''),
     phone: rest.phone !== undefined ? String(rest.phone).trim() : (db.warehouses[index].phone || '')
   };
+
+  recordAuditLog(db, {
+    actionType: 'update_warehouse',
+    actionLabel: 'تحديث بيانات مخزن إقليمي',
+    entity: 'warehouse',
+    entityId: req.params.id,
+    details: `تم تحديث بيانات الاتصال والمسؤول لمخزن (${db.warehouses[index].name}) - المسؤول: ${db.warehouses[index].manager || 'غير محدد'} - هاتف: ${db.warehouses[index].phone || 'غير مسجل'}`,
+    user: getActorUser(req)
+  });
 
   writeDb(db);
   res.json({ message: 'تم تحديث بيانات المخزن بنجاح', warehouse: db.warehouses[index] });
@@ -653,6 +852,7 @@ app.post('/api/maintenance', (req, res) => {
     id: `maint-${Date.now()}`,
     vehicleId,
     vehiclePlate: vehicle ? vehicle.plateNumber : '',
+    vehicleCode: vehicle ? vehicle.code : '',
     date: new Date().toISOString().slice(0, 10),
     type: type || 'صيانة دورية',
     cost: Number(cost) || 0,
@@ -663,6 +863,16 @@ app.post('/api/maintenance', (req, res) => {
 
   if (!db.maintenanceLogs) db.maintenanceLogs = [];
   db.maintenanceLogs.unshift(log);
+
+  recordAuditLog(db, {
+    actionType: 'create_maintenance',
+    actionLabel: 'تسجيل عملية صيانة شاحنة',
+    entity: 'maintenance',
+    entityId: log.id,
+    details: `تم تسجيل صيانة للشاحنة (${vehicle ? vehicle.code : ''} - ${log.vehiclePlate}): نوع الصيانة (${log.type}) بتكلفة ${log.cost} ج.م في (${log.workshop})`,
+    user: getActorUser(req)
+  });
+
   writeDb(db);
   res.status(201).json({ message: 'تم تسجيل الصيانة بنجاح', log });
 });

@@ -9,6 +9,7 @@ import ExpensesTracker from './components/ExpensesTracker';
 import ReportsCenter from './components/ReportsCenter';
 import MaintenanceLogs from './components/MaintenanceLogs';
 import UsersManagement from './components/UsersManagement';
+import AuditLogs from './components/AuditLogs';
 import LoginScreen from './components/LoginScreen';
 import NewMissionModal from './components/NewMissionModal';
 import MissionDetailsModal from './components/MissionDetailsModal';
@@ -67,6 +68,7 @@ export default function App() {
     missions: [],
     maintenanceLogs: [],
     users: [],
+    auditLogs: [],
     stats: null
   });
 
@@ -327,6 +329,7 @@ export default function App() {
         currentUser={currentUser}
         onLogout={handleLogout}
         usersCount={data.users?.length || 0}
+        auditLogsCount={data.auditLogs?.length || 0}
         theme={theme}
         onToggleTheme={toggleTheme}
       />
@@ -422,6 +425,14 @@ export default function App() {
             onAddUser={handleAddUser}
             onUpdateUser={handleUpdateUser}
             onDeleteUser={handleDeleteUser}
+          />
+        )}
+
+        {activeTab === 'audit-logs' && (currentUser?.role === 'admin' || currentUser?.role === 'dispatcher') && (
+          <AuditLogs
+            auditLogs={data.auditLogs || []}
+            currentUser={currentUser}
+            onRefresh={loadData}
           />
         )}
       </main>

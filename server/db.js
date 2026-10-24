@@ -374,6 +374,10 @@ function readDb() {
       db.users = initialUsers;
       writeDb(db);
     }
+    if (!db.auditLogs || !Array.isArray(db.auditLogs) || db.auditLogs.length === 0) {
+      db.auditLogs = initialAuditLogs;
+      writeDb(db);
+    }
     return db;
   } catch (err) {
     console.error("Error reading database:", err);
@@ -390,6 +394,94 @@ function writeDb(data) {
     console.error("Error writing database:", err);
     return false;
   }
+}
+
+// Initial Audit Trail Seeds
+const initialAuditLogs = [
+  {
+    id: "log-seed-1",
+    timestamp: new Date(Date.now() - 3600000 * 4).toISOString(),
+    actionType: "auth_login",
+    actionLabel: "تسجيل دخول معتمد للمنظومة",
+    entity: "auth",
+    entityId: "user-admin-1",
+    details: "قام م/ محمد ابراهيم ابوالمعاطى بتسجيل الدخول إلى منظومة إدارة الحركة وتوزيع الأسطول",
+    userId: "user-admin-1",
+    userName: "م/ محمد ابراهيم ابوالمعاطى",
+    userRole: "admin",
+    userPhone: "01159700466",
+    userDepartment: "إدارة الدعم والمتابعة - البريد المصري"
+  },
+  {
+    id: "log-seed-2",
+    timestamp: new Date(Date.now() - 3600000 * 3).toISOString(),
+    actionType: "update_vehicle",
+    actionLabel: "تحديث موقع شاحنة بالأسطول",
+    entity: "vehicle",
+    entityId: "veh-box-3",
+    details: "تم تعديل موقع الشاحنة (صندوق-03) إلى جراج سوهاج وإسنادها للسائق السيد عيد",
+    userId: "user-admin-1",
+    userName: "م/ محمد ابراهيم ابوالمعاطى",
+    userRole: "admin",
+    userPhone: "01159700466",
+    userDepartment: "إدارة الدعم والمتابعة - البريد المصري"
+  },
+  {
+    id: "log-seed-3",
+    timestamp: new Date(Date.now() - 3600000 * 2).toISOString(),
+    actionType: "create_mission",
+    actionLabel: "إسناد مأمورية جديدة",
+    entity: "mission",
+    entityId: "ms-1",
+    details: "تم إسناد مأمورية شحن مهمات بريدية رقم (مأمورية-101) إلى مخزن مصر العليا (سوهاج الكوثر) بواسطة السائق محمد رمضان والشاحنة كانتر-01",
+    userId: "user-dispatch-1",
+    userName: "مسؤول تشغيل وحركة",
+    userRole: "dispatcher",
+    userPhone: "",
+    userDepartment: "جراج السيارات المركزي - شبرا"
+  },
+  {
+    id: "log-seed-4",
+    timestamp: new Date(Date.now() - 3600000 * 1).toISOString(),
+    actionType: "mission_status",
+    actionLabel: "تحديث حالة مأمورية إلى: على الطريق",
+    entity: "mission",
+    entityId: "ms-1",
+    details: "تم تحريك المأمورية رقم (مأمورية-101) وانطلاق الشاحنة كانتر-01 على طريق سوهاج الصحراوي",
+    userId: "user-dispatch-1",
+    userName: "مسؤول تشغيل وحركة",
+    userRole: "dispatcher",
+    userPhone: "",
+    userDepartment: "جراج السيارات المركزي - شبرا"
+  }
+];
+
+// Helper to record audit activity
+function recordAuditLog(db, { actionType, actionLabel, entity, entityId, details, user }) {
+  if (!db.auditLogs) db.auditLogs = [];
+
+  const entry = {
+    id: `log-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    timestamp: new Date().toISOString(),
+    actionType: actionType || 'general_action',
+    actionLabel: actionLabel || 'إجراء بالمنظومة',
+    entity: entity || 'general',
+    entityId: entityId || null,
+    details: details || '',
+    userId: user?.id || 'unknown',
+    userName: user?.name || 'مستخدم المنظومة',
+    userRole: user?.role || 'viewer',
+    userPhone: user?.phone || '',
+    userDepartment: user?.department || 'قطاع العمليات'
+  };
+
+  db.auditLogs.unshift(entry);
+
+  if (db.auditLogs.length > 2000) {
+    db.auditLogs = db.auditLogs.slice(0, 2000);
+  }
+
+  return entry;
 }
 
 // Operational formula for regional trips duration & occupancy
@@ -540,5 +632,7 @@ module.exports = {
   syncFleetStatus,
   getDestinationScheduleRule,
   initialData,
-  initialUsers
+  initialUsers,
+  initialAuditLogs,
+  recordAuditLog
 };

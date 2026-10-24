@@ -14,7 +14,8 @@ import {
   LogOut,
   UserCheck,
   Sun,
-  Moon
+  Moon,
+  History
 } from 'lucide-react';
 import EgyptPostLogo from './EgyptPostLogo';
 import { getFleetLicenseAlerts } from '../utils/licenseUtils';
@@ -30,6 +31,7 @@ export default function Navbar({
   currentUser,
   onLogout,
   usersCount = 0,
+  auditLogsCount = 0,
   theme = 'light',
   onToggleTheme
 }) {
@@ -49,6 +51,16 @@ export default function Navbar({
     { id: 'reports', label: 'التقارير', icon: FileSpreadsheet },
     { id: 'maintenance', label: 'الصيانة', icon: Wrench },
   ];
+
+  // Audit Logs Tab for Supervisors & Admins
+  if (currentUser?.role === 'admin' || currentUser?.role === 'dispatcher') {
+    tabs.push({
+      id: 'audit-logs',
+      label: 'سجل العمليات والرقابة',
+      icon: History,
+      count: auditLogsCount
+    });
+  }
 
   // Admin exclusive tab for users & permissions management
   if (currentUser?.role === 'admin') {
