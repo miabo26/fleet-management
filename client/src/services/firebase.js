@@ -3,12 +3,13 @@ import { getFirestore, doc, onSnapshot } from 'firebase/firestore';
 
 // Client-side Firebase configuration
 export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDummyKeyForFleetEgyptPost2026",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyBQBRe48JBy4B2RitAEVotKp_iJXqSiH24",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "egypt-post-fleet.firebaseapp.com",
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "egypt-post-fleet",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "egypt-post-fleet.appspot.com",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "123456789012",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:123456789012:web:abcdef1234567890"
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "egypt-post-fleet.firebasestorage.app",
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "4686161514",
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || "1:4686161514:web:ece1ca6223ff20ad598c13",
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "G-CHYXHJYEWV"
 };
 
 // Initialize Firebase app singleton

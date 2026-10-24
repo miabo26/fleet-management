@@ -6,3 +6,5 @@ client/dist
 .env
 server/data/backups/
 *.backup.json
+*firebase-adminsdk*.json
+*.key.json

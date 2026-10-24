@@ -1,6 +1,25 @@
 const fs = require('fs');
 const path = require('path');
 
+// Auto-load .env file if present
+try {
+  const envPath = path.resolve(__dirname, '..', '.env');
+  if (fs.existsSync(envPath)) {
+    const envLines = fs.readFileSync(envPath, 'utf8').split('\n');
+    for (const line of envLines) {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const [k, ...v] = trimmed.split('=');
+        if (k && v.length > 0 && !process.env[k.trim()]) {
+          process.env[k.trim()] = v.join('=').trim();
+        }
+      }
+    }
+  }
+} catch (e) {
+  // Silent fallback
+}
+
 const DB_FILE = path.join(__dirname, 'data', 'fleet_database.json');
 const BACKUP_FILE = path.join(__dirname, 'data', 'fleet_database.backup.json');
 const BACKUPS_DIR = path.join(__dirname, 'data', 'backups');
@@ -63,13 +82,26 @@ async function initFirebase() {
   try {
     const admin = require('firebase-admin');
     if (admin.apps.length === 0) {
+      let serviceAccount = null;
       if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-        let serviceAccount;
         try {
           serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
         } catch (e) {
           serviceAccount = require(path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT));
         }
+      } else {
+        // Auto-detect service account JSON file in workspace
+        try {
+          const rootDir = path.resolve(__dirname, '..');
+          const files = fs.readdirSync(rootDir);
+          const saFile = files.find(f => f.includes('firebase-adminsdk') && f.endsWith('.json'));
+          if (saFile) {
+            serviceAccount = require(path.join(rootDir, saFile));
+          }
+        } catch (e) {}
+      }
+
+      if (serviceAccount) {
         admin.initializeApp({
           credential: admin.credential.cert(serviceAccount)
         });
@@ -110,9 +142,7 @@ async function initFirebase() {
   }
 }
 
-if (process.env.FIREBASE_PROJECT_ID || process.env.FIREBASE_SERVICE_ACCOUNT) {
-  initFirebase();
-}
+initFirebase();
 
 // Initial seed data based exactly on User Specifications
 const initialData = {
