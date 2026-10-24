@@ -720,10 +720,10 @@ app.get('/api/driver/list', (req, res) => {
   res.json(driversList);
 });
 
-// 2. Driver Login (by driver ID or phone)
+// 2. Driver Login (by driver ID or phone + last 4 digits of National ID)
 app.post('/api/driver/login', (req, res) => {
   const db = readDb();
-  const { driverId, phone } = req.body;
+  const { driverId, phone, nationalIdPin } = req.body;
 
   let driver = null;
   if (driverId) {
@@ -735,6 +735,26 @@ app.post('/api/driver/login', (req, res) => {
 
   if (!driver) {
     return res.status(404).json({ error: 'لم يتم العثور على سائق مسجل بهذه البيانات' });
+  }
+
+  // Validate last 4 digits of National ID
+  const cleanNationalId = String(driver.nationalId || '').replace(/\D/g, '');
+  const providedPin = String(nationalIdPin || '').trim().replace(/\D/g, '');
+
+  if (cleanNationalId.length >= 4) {
+    const expectedLast4 = cleanNationalId.slice(-4);
+    if (providedPin !== expectedLast4) {
+      return res.status(401).json({ 
+        error: 'رمز التحقق غير صحيح: يرجى كتابة آخر 4 أرقام من رقمك القومي بشكل صحيح' 
+      });
+    }
+  } else {
+    // If no national ID is recorded yet for this driver, allow default 1234
+    if (providedPin !== '1234') {
+      return res.status(401).json({ 
+        error: 'يرجى كتابة آخر 4 أرقام من الرقم القومي (الرمز الافتراضي: 1234)' 
+      });
+    }
   }
 
   // Find assigned vehicle

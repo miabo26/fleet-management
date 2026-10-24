@@ -99,13 +99,14 @@ export default function App() {
   useEffect(() => {
     const initAuth = async () => {
       try {
-        // 1. Check URL parameters for direct 1-tap driver links: ?driver=drv-1 or ?phone=010...
+        // 1. Check URL parameters for direct driver link with PIN (?driver=drv-1&pin=1234)
         const urlParams = new URLSearchParams(window.location.search);
         const urlDriverId = urlParams.get('driver');
         const urlDriverPhone = urlParams.get('phone');
-        if (urlDriverId || urlDriverPhone) {
+        const urlDriverPin = urlParams.get('pin');
+        if (urlDriverPin && (urlDriverId || urlDriverPhone)) {
           try {
-            const driverRes = await driverLogin(urlDriverId || null, urlDriverPhone || null);
+            const driverRes = await driverLogin(urlDriverId || null, urlDriverPhone || null, urlDriverPin);
             if (driverRes && driverRes.driver) {
               handleDriverLogin(driverRes);
               window.history.replaceState({}, document.title, window.location.pathname);

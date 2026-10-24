@@ -331,11 +331,11 @@ export async function fetchDriversPortalList() {
   return res.json();
 }
 
-export async function driverLogin(driverId, phone) {
+export async function driverLogin(driverId, phone, nationalIdPin = '') {
   const res = await fetch(`${API_BASE}/driver/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ driverId, phone })
+    body: JSON.stringify({ driverId, phone, nationalIdPin })
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
