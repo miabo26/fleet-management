@@ -71,16 +71,6 @@ export default function LoginScreen({
     }
   };
 
-  // Emergency SOS Modal state
-  const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false);
-  const [gpsLocation, setGpsLocation] = useState('');
-  const [isGettingGps, setIsGettingGps] = useState(false);
-  const [emergencyDriverName, setEmergencyDriverName] = useState('');
-  const [emergencyIssue, setEmergencyIssue] = useState('انفجار إطار الشاحنة (كاوتش) وتوقف بالكامل');
-  const [emergencyAidNeeded, setEmergencyAidNeeded] = useState('طاقم إصلاح وتغيير إطارات (كاوتش)');
-  const [emergencyLocationNotes, setEmergencyLocationNotes] = useState('');
-  const [emergencyNotes, setEmergencyNotes] = useState('');
-
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -139,61 +129,6 @@ export default function LoginScreen({
     }
   };
 
-  // Handle GPS location fetch for emergency
-  const handleDetectGps = () => {
-    if (!navigator.geolocation) {
-      alert('خاصية تحديد الموقع الجغرافي غير مدعومة في هذا المتصفح');
-      return;
-    }
-    setIsGettingGps(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setIsGettingGps(false);
-        const lat = pos.coords.latitude.toFixed(6);
-        const lng = pos.coords.longitude.toFixed(6);
-        setGpsLocation(`https://maps.google.com/?q=${lat},${lng}`);
-      },
-      (err) => {
-        setIsGettingGps(false);
-        alert('تعذر جلب موقعك: يرجى التأكد من تفعيل خدمة الـ GPS في الهاتف والسماح للمتصفح');
-      },
-      { timeout: 10000, enableHighAccuracy: true }
-    );
-  };
-
-  // Build emergency WhatsApp URL with rich structured operational details
-  const buildEmergencyWhatsAppUrl = () => {
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' });
-    const dateStr = now.toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-    const text = `🚨 *بلاغ استغاثة وعطل طارئ على الطريق* 🚨
-━━━━━━━━━━━━━━━━━━━━━
-🏢 *الهيئة القومية للبريد المصري*
-🚚 *قطاع تشغيل وحركة الأسطول — غرفة العمليات والطوارئ*
-━━━━━━━━━━━━━━━━━━━━━
-
-👤 *بيانات السائق المُبلّغ:*
-• الاسم: ${emergencyDriverName.trim() ? `الأسطى / ${emergencyDriverName.trim()}` : (driverPhone.trim() ? `سائق برقم هاتف (${driverPhone.trim()})` : 'سائق بأسطول النقل')}
-• الهاتف: ${driverPhone.trim() || 'مرفق بالمحادثة'}
-
-⚠️ *تفاصيل البلاغ والعطل الميداني:*
-• نوع المشكلة: ${emergencyIssue}
-• ما يلزم للدعم فوراً: ${emergencyAidNeeded || 'ونش أو دعم فني'}
-${emergencyLocationNotes ? `• العلامة المميزة على الطريق: ${emergencyLocationNotes}\n` : ''}${emergencyNotes ? `• ملاحظات السائق: ${emergencyNotes}\n` : ''}
-🛡️ *حالة الأمان والشحنة:*
-الشاحنة متوقفة بالجانب الآمن من الطريق والحمولة مؤمنة بالكامل دون أي تلفيات.
-
-📍 *موقعي الدقيق على الخريطة (Google Maps):*
-${gpsLocation ? gpsLocation : 'جاري تحديد الإحداثيات (يرجى الاتصال بي فوراً)'}
-
-⏱️ *توقيت وتاريخ البلاغ:* ${timeStr} — ${dateStr}
-━━━━━━━━━━━━━━━━━━━━━
-📞 *موجه إلى:* م/ محمد ابراهيم ابوالمعاطى — مدير إدارة الدعم والمتابعة`;
-
-    return `https://wa.me/201159700466?text=${encodeURIComponent(text)}`;
-  };
-
   const isDark = theme === 'dark';
 
   return (
@@ -249,7 +184,7 @@ ${gpsLocation ? gpsLocation : 'جاري تحديد الإحداثيات (يرج�
         <div className="rounded-3xl p-1 bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 shadow-xl shadow-rose-600/20">
           <button
             type="button"
-            onClick={() => setIsEmergencyModalOpen(true)}
+            onClick={() => window.dispatchEvent(new CustomEvent('open-emergency-sos'))}
             className="w-full py-3 px-4 rounded-[22px] bg-slate-950 hover:bg-slate-900 text-white font-black text-xs sm:text-sm flex items-center justify-between gap-2 transition-all cursor-pointer group"
           >
             <div className="flex items-center gap-2.5">
@@ -544,178 +479,6 @@ ${gpsLocation ? gpsLocation : 'جاري تحديد الإحداثيات (يرج�
         </div>
 
       </div>
-
-      {/* 🚨 ZERO-FRICTION EMERGENCY SOS MODAL (Zero-barrier roadside assistance) */}
-      {isEmergencyModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
-          <div className="bg-slate-900 border-2 border-rose-500/50 rounded-3xl p-5 sm:p-6 w-full max-w-md space-y-4 shadow-2xl text-white">
-            
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2.5 text-rose-400">
-                <span className="p-2 rounded-2xl bg-rose-500/20 text-xl">🚨</span>
-                <div>
-                  <h3 className="text-sm sm:text-base font-black text-white m-0">
-                    مركز استغاثة وطوارئ الطريق السريع
-                  </h3>
-                  <span className="text-[10px] text-rose-300 font-bold block">
-                    غرفة عمليات الدعم والمتابعة — البريد المصري
-                  </span>
-                </div>
-              </div>
-              <button 
-                onClick={() => setIsEmergencyModalOpen(false)}
-                className="p-1 rounded-xl bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Quick Contact Buttons */}
-            <div className="space-y-2.5">
-              
-              {/* Direct Phone Call to Eng. Mohamed Aboelmaaty */}
-              <a
-                href="tel:01159700466"
-                className="w-full p-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm flex items-center justify-between shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
-              >
-                <div className="flex items-center gap-2.5">
-                  <PhoneCall className="w-5 h-5 text-white animate-bounce" />
-                  <div className="text-right">
-                    <span className="block text-xs font-bold text-emerald-100">اتصال هاتفي مباشر بالمسؤول:</span>
-                    <span className="block font-black text-sm">م/ محمد ابراهيم ابوالمعاطى</span>
-                  </div>
-                </div>
-                <span className="font-mono text-xs bg-emerald-950/60 px-2.5 py-1 rounded-xl text-emerald-200 border border-emerald-400/30 font-bold" dir="ltr">
-                  01159700466
-                </span>
-              </a>
-
-              {/* Direct WhatsApp SOS Dispatch */}
-              <div className="bg-slate-800/80 p-3.5 rounded-2xl border border-slate-700 space-y-2.5">
-                <span className="text-xs font-bold text-slate-300 block">
-                  أو إرسال بلاغ استغاثة تفصيلي على واتساب مع موقعك (GPS):
-                </span>
-
-                {/* Driver Name (Text input) */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">اسم السائق المُبلّغ (اختياري):</label>
-                  <input
-                    type="text"
-                    placeholder="الأسطى / اكتب اسمك"
-                    value={emergencyDriverName}
-                    onChange={e => setEmergencyDriverName(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white"
-                  />
-                </div>
-
-                {/* Issue Selector */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">نوع المشكلة / العطل:</label>
-                  <select
-                    value={emergencyIssue}
-                    onChange={e => setEmergencyIssue(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white font-bold"
-                  >
-                    <option value="انفجار إطار الشاحنة (كاوتش) وتوقف بالكامل">انفجار إطار الشاحنة (كاوتش) وتوقف بالكامل</option>
-                    <option value="عطل ميكانيكي طارئ في المحرك أو الفتيس">عطل ميكانيكي طارئ في المحرك أو الفتيس</option>
-                    <option value="عطل كهربائي وانقطاع الإنارة بالكامل">عطل كهربائي وانقطاع الإنارة بالكامل</option>
-                    <option value="ارتفاع شديد في حرارة المحرك وتوقف التبريد">ارتفاع شديد في حرارة المحرك وتوقف التبريد</option>
-                    <option value="توقف أمني أو مشكلة على الطريق الصحراوي">توقف أمني أو مشكلة على الطريق الصحراوي</option>
-                    <option value="حادث سير لا قدر الله وبحاجة لوحدة إسعاف وونش">حادث سير لا قدر الله وبحاجة لوحدة إسعاف وونش</option>
-                    <option value="نفاد السولار">نفاد السولار</option>
-                  </select>
-                </div>
-
-                {/* Aid Needed */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">ما يلزم للدعم فوراً:</label>
-                  <select
-                    value={emergencyAidNeeded}
-                    onChange={e => setEmergencyAidNeeded(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white font-bold"
-                  >
-                    <option value="طاقم إصلاح وتغيير إطارات (كاوتش)">طاقم إصلاح وتغيير إطارات (كاوتش)</option>
-                    <option value="ونش سحب وإنقاذ شاحنات ثقيل">ونش سحب وإنقاذ شاحنات ثقيل</option>
-                    <option value="فني ميكانيكا محركات متنقل">فني ميكانيكا محركات متنقل</option>
-                    <option value="سيارة نقل بديلة لنقل وتأمين الحمولة">سيارة نقل بديلة لنقل وتأمين الحمولة</option>
-                    <option value="إسعاف وطوارئ طبية">إسعاف وطوارئ طبية</option>
-                  </select>
-                </div>
-
-                {/* Location Landmark */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-300 mb-1">اسم الطريق أو علامة مميزة تقريبية (اختياري):</label>
-                  <input
-                    type="text"
-                    placeholder="مثال: طريق الإسكندرية الزراعي بعد بنها بـ 10 كم"
-                    value={emergencyLocationNotes}
-                    onChange={e => setEmergencyLocationNotes(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-white"
-                  />
-                </div>
-
-                {/* GPS Location Button */}
-                <div className="pt-1">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handleDetectGps}
-                      disabled={isGettingGps}
-                      className="flex-1 py-2 px-3 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-300 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
-                    >
-                      <Locate className={`w-4 h-4 ${isGettingGps ? 'animate-spin' : ''}`} />
-                      <span>{isGettingGps ? 'جاري تحديد موقعك...' : gpsLocation ? 'تم التقاط الموقع بالـ GPS ✓' : 'تحديد موقعي الحالي بالـ GPS 📍'}</span>
-                    </button>
-                  </div>
-
-                  {gpsLocation && (
-                    <div className="text-[10px] text-emerald-400 font-mono truncate bg-slate-900 p-1.5 rounded-lg border border-slate-800 mt-1">
-                      {gpsLocation}
-                    </div>
-                  )}
-                </div>
-
-                {/* Send Button */}
-                <a
-                  href={buildEmergencyWhatsAppUrl()}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-3 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition-all cursor-pointer mt-2"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span>إرسال البلاغ المفصل فوراً عبر واتساب 📲</span>
-                </a>
-              </div>
-
-              {/* National Official Emergency Hotlines */}
-              <div className="pt-2 border-t border-slate-800">
-                <span className="text-[11px] font-bold text-slate-400 block mb-2">أرقام الطوارئ السريعة بالدولة:</span>
-                <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                  <a href="tel:136" className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700">
-                    <span className="text-[10px] text-slate-400 block">طوارئ المرور</span>
-                    <strong className="text-amber-400 font-mono font-black text-sm">136</strong>
-                  </a>
-                  <a href="tel:122" className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700">
-                    <span className="text-[10px] text-slate-400 block">شرطة النجدة</span>
-                    <strong className="text-blue-400 font-mono font-black text-sm">122</strong>
-                  </a>
-                  <a href="tel:123" className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700">
-                    <span className="text-[10px] text-slate-400 block">الإسعاف المصري</span>
-                    <strong className="text-rose-400 font-mono font-black text-sm">123</strong>
-                  </a>
-                </div>
-              </div>
-
-            </div>
-
-            <div className="text-center text-[10px] text-slate-400 pt-1">
-              إدارة أسطول النقل والمخازن — الهيئة القومية للبريد المصري
-            </div>
-
-          </div>
-        </div>
-      )}
 
       {/* 📲 PWA INSTALLATION GUIDE MODAL */}
       {showInstallGuide && (

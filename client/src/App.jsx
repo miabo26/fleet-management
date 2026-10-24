@@ -18,6 +18,7 @@ import PrintableTripSheet from './components/PrintableTripSheet';
 import LicenseAlertsModal from './components/LicenseAlertsModal';
 import EgyptPostLogo from './components/EgyptPostLogo';
 import PwaInstallPrompt from './components/PwaInstallPrompt';
+import EmergencySosManager from './components/EmergencySosManager';
 
 import { 
   fetchFullData, 
@@ -371,6 +372,7 @@ export default function App() {
           onToggleTheme={toggleTheme}
         />
         <PwaInstallPrompt />
+        <EmergencySosManager currentUser={currentUser} />
       </>
     );
   }
@@ -386,6 +388,7 @@ export default function App() {
           onToggleTheme={toggleTheme}
         />
         <PwaInstallPrompt />
+        <EmergencySosManager currentUser={currentUser} />
       </>
     );
   }
@@ -602,6 +605,7 @@ export default function App() {
       />
 
       <PwaInstallPrompt />
+      <EmergencySosManager currentUser={currentUser} />
 
     </div>
   );
