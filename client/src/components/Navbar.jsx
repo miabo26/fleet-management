@@ -10,7 +10,9 @@ import {
   Compass,
   FileSpreadsheet,
   Bell,
-  Award
+  Award,
+  LogOut,
+  UserCheck
 } from 'lucide-react';
 import EgyptPostLogo from './EgyptPostLogo';
 import { getFleetLicenseAlerts } from '../utils/licenseUtils';
@@ -22,7 +24,10 @@ export default function Navbar({
   stats,
   vehicles = [],
   drivers = [],
-  onOpenLicenseAlerts
+  onOpenLicenseAlerts,
+  currentUser,
+  onLogout,
+  usersCount = 0
 }) {
   const alertsData = getFleetLicenseAlerts(vehicles, drivers);
   const urgentAlertsCount = alertsData.urgentCount;
@@ -40,6 +45,18 @@ export default function Navbar({
     { id: 'reports', label: 'التقارير', icon: FileSpreadsheet },
     { id: 'maintenance', label: 'الصيانة', icon: Wrench },
   ];
+
+  // Admin exclusive tab for users & permissions management
+  if (currentUser?.role === 'admin') {
+    tabs.push({
+      id: 'users',
+      label: 'المستخدمين والصلاحيات',
+      icon: ShieldCheck,
+      count: usersCount
+    });
+  }
+
+  const canCreateMission = currentUser?.role === 'admin' || currentUser?.role === 'dispatcher';
 
   return (
     <header className="bg-slate-900 text-white shadow-lg sticky top-0 z-40 border-b border-slate-800">
@@ -66,7 +83,7 @@ export default function Navbar({
             </div>
           </div>
 
-          {/* Center: Elegant & Compact Supervision Credit */}
+          {/* Center: Supervision Signature (Compact) */}
           <div className="hidden xl:flex items-center gap-2 bg-slate-800/60 border border-slate-700/60 px-3 py-1.5 rounded-xl text-xs">
             <Award className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             <span className="text-amber-300 font-bold">إشراف:</span>
@@ -74,8 +91,9 @@ export default function Navbar({
             <span className="text-slate-400 text-[11px]">| مدير ادارة الدعم والمتابعة</span>
           </div>
 
-          {/* Left: Quick Actions (Bell + New Mission Button) */}
-          <div className="flex items-center gap-2.5">
+          {/* Left: Quick Actions (Bell + New Mission + User Profile & Logout) */}
+          <div className="flex items-center gap-2">
+            
             {/* License Expiry Bell Notification */}
             <button
               onClick={onOpenLicenseAlerts}
@@ -95,14 +113,42 @@ export default function Navbar({
               )}
             </button>
 
-            {/* New Mission Button */}
-            <button
-              onClick={onOpenNewMission}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold px-3.5 py-2 rounded-xl text-xs sm:text-sm shadow-md shadow-blue-600/20 transition-all cursor-pointer"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span>مأمورية جديدة</span>
-            </button>
+            {/* New Mission Button (Only for authorized roles) */}
+            {canCreateMission && (
+              <button
+                onClick={onOpenNewMission}
+                className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-2 rounded-xl text-xs sm:text-sm shadow-md shadow-blue-600/20 transition-all cursor-pointer"
+              >
+                <PlusCircle className="w-4 h-4" />
+                <span>مأمورية جديدة</span>
+              </button>
+            )}
+
+            {/* Current Logged-in User Pill with Logout Button */}
+            {currentUser && (
+              <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 px-2.5 py-1.5 rounded-xl text-xs">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-300 flex items-center justify-center font-bold text-xs shrink-0">
+                  {currentUser.role === 'admin' ? '👑' : '👤'}
+                </div>
+                <div className="hidden lg:block text-right leading-tight">
+                  <span className="font-bold text-white block text-[11px] truncate max-w-[120px]">
+                    {currentUser.name}
+                  </span>
+                  <span className="text-[10px] text-emerald-400 font-semibold">
+                    {currentUser.role === 'admin' ? 'مدير عام' : currentUser.roleLabel}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-700/60 transition-colors cursor-pointer mr-0.5"
+                  title="تسجيل الخروج من المنظومة"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
           </div>
 
         </div>

@@ -103,14 +103,13 @@ function calculateArrivalDate(depDateStr, hoursOffset) {
 }
 
 export const CARGO_PRESET_OPTIONS = [
-  'مهمات ومطبوعات بريدية ونماذج رسمية',
-  'طرود بريدية وشحنات سريعة (EMS)',
-  'بضائع ومهمات تموينية معبأة',
-  'مستلزمات تشغيل وقطع غيار ومستهلكات جراج',
-  'أجهزة حاسب آلي ومعدات مكاتب بريد',
-  'حقائب بريدية ومراسلات مسجلة',
-  'مهمات أثاث وتجهيزات مكاتب',
-  'أخرى (إدخال يدوي مخصص)'
+  'اثاثات مكتبيه',
+  'اجهزة الكترونية',
+  'مطبوعات',
+  'ورق تصوير',
+  'ادوات كتابيه واحبار',
+  'مهمات بريدية',
+  'اخرى'
 ];
 
 export default function NewMissionModal({ 
@@ -131,7 +130,7 @@ export default function NewMissionModal({
     vehicleId: '',
     originId: 'loc-main-tagamoa',
     destinationId: 'loc-gharbia-qarshiya',
-    cargoType: 'مهمات ومطبوعات بريدية ونماذج رسمية',
+    cargoType: 'اثاثات مكتبيه',
     cargoWeight: '',
     dispatchOrderNumber: '',
     departureDate: new Date().toISOString().slice(0, 16),
@@ -909,7 +908,7 @@ export default function NewMissionModal({
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:ring-2 focus:ring-blue-500/20"
                 >
                   {CARGO_PRESET_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt === 'أخرى (إدخال يدوي مخصص)' ? 'other' : opt}>
+                    <option key={opt} value={opt === 'اخرى' ? 'other' : opt}>
                       {opt}
                     </option>
                   ))}

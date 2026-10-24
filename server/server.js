@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { readDb, writeDb, syncFleetStatus, getDestinationScheduleRule, initialData } = require('./db');
 
 const app = express();
@@ -9,6 +10,46 @@ const PORT = process.env.PORT || 5001;
 
 app.use(cors());
 app.use(express.json());
+
+// In-memory active user sessions: token -> { userId, role, expiresAt }
+const activeSessions = new Map();
+
+function generateToken(user) {
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 days session
+  activeSessions.set(token, {
+    userId: user.id,
+    role: user.role,
+    expiresAt
+  });
+  return token;
+}
+
+function sanitizeUser(user) {
+  if (!user) return null;
+  return {
+    id: user.id,
+    name: user.name,
+    username: user.username,
+    role: user.role,
+    roleLabel: user.roleLabel,
+    phone: user.phone || '',
+    department: user.department || '',
+    status: user.status || 'active',
+    permissions: user.permissions || [],
+    createdAt: user.createdAt
+  };
+}
+
+function getSessionUser(req) {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) return null;
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  const session = activeSessions.get(token);
+  if (!session || session.expiresAt < Date.now()) return null;
+  const db = readDb();
+  return db.users?.find(u => u.id === session.userId && u.status === 'active') || null;
+}
 
 // Request logger
 app.use((req, res, next) => {
@@ -90,6 +131,175 @@ function calculateStats(db) {
   };
 }
 
+// ---------------- AUTHENTICATION & USERS ---------------- //
+
+// LOGIN
+app.post('/api/auth/login', (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    return res.status(400).json({ error: 'يرجى إدخال اسم المستخدم وكلمة المرور' });
+  }
+
+  const db = readDb();
+  const cleanUsername = String(username).trim().toLowerCase();
+  const cleanPassword = String(password).trim();
+
+  // Find user by username or phone
+  const user = (db.users || []).find(u => 
+    (u.username.toLowerCase() === cleanUsername || (u.phone && u.phone.trim() === cleanUsername)) &&
+    u.status === 'active'
+  );
+
+  if (!user || user.password !== cleanPassword) {
+    return res.status(401).json({ error: 'اسم المستخدم أو كلمة المرور غير صحيحة' });
+  }
+
+  const token = generateToken(user);
+  res.json({
+    message: 'تم تسجيل الدخول بنجاح',
+    token,
+    user: sanitizeUser(user)
+  });
+});
+
+// GET CURRENT USER (ME)
+app.get('/api/auth/me', (req, res) => {
+  const user = getSessionUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'جلسة المستخدم منتهية أو غير مسجلة' });
+  }
+  res.json({ user: sanitizeUser(user) });
+});
+
+// LOGOUT
+app.post('/api/auth/logout', (req, res) => {
+  const authHeader = req.headers['authorization'];
+  if (authHeader) {
+    const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+    activeSessions.delete(token);
+  }
+  res.json({ message: 'تم تسجيل الخروج بنجاح' });
+});
+
+// GET USERS LIST (Admin only)
+app.get('/api/users', (req, res) => {
+  const db = readDb();
+  const user = getSessionUser(req);
+  if (!user || user.role !== 'admin') {
+    return res.status(403).json({ error: 'غير مصرح: هذه الصفحة مخصصة لمدير عام المنظومة فقط' });
+  }
+  res.json((db.users || []).map(u => sanitizeUser(u)));
+});
+
+// CREATE NEW USER (Admin only)
+app.post('/api/users', (req, res) => {
+  const sessionUser = getSessionUser(req);
+  if (!sessionUser || sessionUser.role !== 'admin') {
+    return res.status(403).json({ error: 'غير مصرح: إدارة المستخدمين تتطلب صلاحية مدير عام المنظومة' });
+  }
+
+  const { name, username, password, role, phone, department, permissions } = req.body;
+  if (!name || !username || !password) {
+    return res.status(400).json({ error: 'الاسم واسم المستخدم وكلمة المرور حقول مطلوبة' });
+  }
+
+  const db = readDb();
+  const cleanUsername = String(username).trim().toLowerCase();
+  
+  if (db.users?.some(u => u.username.toLowerCase() === cleanUsername)) {
+    return res.status(400).json({ error: 'اسم المستخدم هذا مسجل بالفعل، يرجى اختيار اسم آخر' });
+  }
+
+  const roleLabels = {
+    admin: 'مدير عام المنظومة (تحكم كامل)',
+    dispatcher: 'مسؤول حركة وتشغيل',
+    warehouse_manager: 'أمين مخزن إقليمي',
+    viewer: 'مشاهد واستعلام فقط'
+  };
+
+  const newUser = {
+    id: `user-${Date.now()}`,
+    name: name.trim(),
+    username: cleanUsername,
+    password: String(password).trim(),
+    role: role || 'viewer',
+    roleLabel: roleLabels[role] || 'مستخدم معتمد',
+    phone: phone ? String(phone).trim() : '',
+    department: department ? String(department).trim() : 'قطاع العمليات',
+    status: 'active',
+    permissions: Array.isArray(permissions) ? permissions : (role === 'admin' ? ['all'] : []),
+    createdAt: new Date().toISOString()
+  };
+
+  if (!db.users) db.users = [];
+  db.users.push(newUser);
+  writeDb(db);
+
+  res.status(201).json({
+    message: 'تم إنشاء المستخدم بنجاح',
+    user: sanitizeUser(newUser)
+  });
+});
+
+// UPDATE USER (Admin only)
+app.put('/api/users/:id', (req, res) => {
+  const sessionUser = getSessionUser(req);
+  if (!sessionUser || sessionUser.role !== 'admin') {
+    return res.status(403).json({ error: 'غير مصرح: تعديل المستخدمين يتطلب صلاحية مدير عام المنظومة' });
+  }
+
+  const db = readDb();
+  const index = (db.users || []).findIndex(u => u.id === req.params.id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'المستخدم غير موجود' });
+  }
+
+  const existing = db.users[index];
+  const { name, role, phone, department, status, password, permissions } = req.body;
+
+  const roleLabels = {
+    admin: 'مدير عام المنظومة (تحكم كامل)',
+    dispatcher: 'مسؤول حركة وتشغيل',
+    warehouse_manager: 'أمين مخزن إقليمي',
+    viewer: 'مشاهد واستعلام فقط'
+  };
+
+  if (name) existing.name = name.trim();
+  if (role) {
+    existing.role = role;
+    existing.roleLabel = roleLabels[role] || existing.roleLabel;
+  }
+  if (phone !== undefined) existing.phone = String(phone).trim();
+  if (department !== undefined) existing.department = String(department).trim();
+  if (status && ['active', 'inactive'].includes(status)) existing.status = status;
+  if (password && String(password).trim().length > 0) existing.password = String(password).trim();
+  if (Array.isArray(permissions)) existing.permissions = permissions;
+
+  writeDb(db);
+  res.json({
+    message: 'تم تحديث بيانات المستخدم بنجاح',
+    user: sanitizeUser(existing)
+  });
+});
+
+// DELETE USER (Admin only)
+app.delete('/api/users/:id', (req, res) => {
+  const sessionUser = getSessionUser(req);
+  if (!sessionUser || sessionUser.role !== 'admin') {
+    return res.status(403).json({ error: 'غير مصرح: حذف المستخدمين يتطلب صلاحية مدير عام المنظومة' });
+  }
+
+  if (req.params.id === 'user-admin-1') {
+    return res.status(400).json({ error: 'لا يمكن حذف الحساب الرئيسي للمهندس محمد ابراهيم (مدير عام المنظومة)' });
+  }
+
+  const db = readDb();
+  db.users = (db.users || []).filter(u => u.id !== req.params.id);
+  writeDb(db);
+
+  res.json({ message: 'تم حذف المستخدم بنجاح' });
+});
+
 // ---------------- API ROUTES ---------------- //
 
 // GET Full Database & Stats
@@ -98,7 +308,8 @@ app.get('/api/data', (req, res) => {
   syncFleetStatus(db);
   writeDb(db);
   const stats = calculateStats(db);
-  res.json({ ...db, stats });
+  const sanitizedUsers = (db.users || []).map(u => sanitizeUser(u));
+  res.json({ ...db, users: sanitizedUsers, stats });
 });
 
 // GET Stats
@@ -170,7 +381,7 @@ app.post('/api/missions', (req, res) => {
     scheduleType: req.body.scheduleType || scheduleRule.scheduleType,
     durationLabel: req.body.durationLabel || scheduleRule.durationLabel,
     scheduleSteps: req.body.scheduleSteps || scheduleRule.scheduleSteps,
-    cargoType: cargoType || 'مهمات ومطبوعات بريدية ونماذج رسمية',
+    cargoType: cargoType || 'اثاثات مكتبيه',
     cargoWeight: cargoWeight ? String(cargoWeight).trim() : '',
     dispatchOrderNumber: dispatchOrderNumber ? String(dispatchOrderNumber).trim() : '',
     departureDate: departureDate || new Date().toISOString().slice(0, 16),

@@ -8,6 +8,8 @@ import WarehousesMap from './components/WarehousesMap';
 import ExpensesTracker from './components/ExpensesTracker';
 import ReportsCenter from './components/ReportsCenter';
 import MaintenanceLogs from './components/MaintenanceLogs';
+import UsersManagement from './components/UsersManagement';
+import LoginScreen from './components/LoginScreen';
 import NewMissionModal from './components/NewMissionModal';
 import MissionDetailsModal from './components/MissionDetailsModal';
 import PrintableTripSheet from './components/PrintableTripSheet';
@@ -27,22 +29,33 @@ import {
   deleteVehicle,
   updateWarehouse,
   addMaintenanceLog,
-  resetDatabase
+  resetDatabase,
+  getStoredUser,
+  loginUser,
+  logoutUser,
+  fetchCurrentUser,
+  createUser,
+  updateUser,
+  deleteUser
 } from './services/api';
 
 import { Loader2, RefreshCw, Phone, MessageCircle, ShieldCheck, Award } from 'lucide-react';
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState(() => getStoredUser());
+  const [authChecking, setAuthChecking] = useState(true);
+
   const [data, setData] = useState({
     drivers: [],
     vehicles: [],
     warehouses: [],
     missions: [],
     maintenanceLogs: [],
+    users: [],
     stats: null
   });
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
 
   // Modals state
@@ -58,14 +71,85 @@ export default function App() {
       setData(res);
     } catch (err) {
       console.error('Error fetching data:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
+  // Verify auth session on initial load
   useEffect(() => {
-    loadData();
+    const initAuth = async () => {
+      try {
+        const stored = getStoredUser();
+        if (stored) {
+          const verified = await fetchCurrentUser();
+          if (verified) {
+            setCurrentUser(verified);
+            await loadData();
+          } else {
+            setCurrentUser(null);
+          }
+        } else {
+          setCurrentUser(null);
+        }
+      } catch (err) {
+        console.error('Auth verification error:', err);
+        setCurrentUser(null);
+      } finally {
+        setAuthChecking(false);
+      }
+    };
+    initAuth();
   }, []);
+
+  // Auth Handlers
+  const handleLogin = async (credentials) => {
+    const res = await loginUser(credentials);
+    setCurrentUser(res.user);
+    await loadData();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      setCurrentUser(null);
+      setActiveTab('dashboard');
+    }
+  };
+
+  // Handlers for Users (Admin only)
+  const handleAddUser = async (userData) => {
+    try {
+      const res = await createUser(userData);
+      await loadData();
+      return res;
+    } catch (err) {
+      alert(err.message);
+      throw err;
+    }
+  };
+
+  const handleUpdateUser = async (id, updatedData) => {
+    try {
+      const res = await updateUser(id, updatedData);
+      await loadData();
+      return res;
+    } catch (err) {
+      alert(err.message);
+      throw err;
+    }
+  };
+
+  const handleDeleteUser = async (id) => {
+    try {
+      await deleteUser(id);
+      await loadData();
+    } catch (err) {
+      alert(err.message);
+      throw err;
+    }
+  };
 
   // Handlers for Missions
   const handleCreateMission = async (missionData) => {
@@ -180,10 +264,27 @@ export default function App() {
     }
   };
 
+  // Auth checking spinner screen
+  if (authChecking) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white" dir="rtl">
+        <EgyptPostLogo variant="light" className="h-12 w-auto mb-6 animate-pulse" />
+        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mb-3" />
+        <h3 className="text-base font-bold text-slate-200">التحقق من جلسة الدخول المعتمدة...</h3>
+        <p className="text-xs text-slate-400 mt-1">الهيئة القومية للبريد المصري • قطاع النقل والمخازن</p>
+      </div>
+    );
+  }
+
+  // Gatekeeper: Protected Link — Unauthenticated users must log in
+  if (!currentUser) {
+    return <LoginScreen onLoginSuccess={handleLogin} />;
+  }
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white">
-        <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white" dir="rtl">
+        <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mb-4" />
         <h3 className="text-lg font-black font-sans">جاري تحميل بيانات أسطول النقل والمأموريات...</h3>
         <p className="text-xs text-slate-400 mt-1">المخزن الرئيسي بالتجمع • جراج شبرا • المخازن الإقليمية</p>
       </div>
@@ -191,7 +292,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-slate-100 flex flex-col selection:bg-emerald-600 selection:text-white" dir="rtl">
       
       {/* Top Navigation */}
       <Navbar
@@ -202,10 +303,13 @@ export default function App() {
         vehicles={data.vehicles}
         drivers={data.drivers}
         onOpenLicenseAlerts={() => setIsLicenseAlertsOpen(true)}
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        usersCount={data.users?.length || 0}
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
         {activeTab === 'dashboard' && (
           <Dashboard
             data={data}
@@ -284,6 +388,16 @@ export default function App() {
             maintenanceLogs={data.maintenanceLogs}
             vehicles={data.vehicles}
             onAddLog={handleAddMaintenanceLog}
+          />
+        )}
+
+        {activeTab === 'users' && currentUser?.role === 'admin' && (
+          <UsersManagement
+            users={data.users || []}
+            currentUser={currentUser}
+            onAddUser={handleAddUser}
+            onUpdateUser={handleUpdateUser}
+            onDeleteUser={handleDeleteUser}
           />
         )}
       </main>

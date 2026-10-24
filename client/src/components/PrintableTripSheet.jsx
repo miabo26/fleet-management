@@ -167,7 +167,7 @@ export default function PrintableTripSheet({ mission, drivers = [], vehicles = [
               </h3>
               <div className="space-y-1.5 text-xs">
                 <div>رقم إذن الصرف / البوليصة: <strong>{mission.dispatchOrderNumber || 'قيد الاستخراج والتسليم'}</strong></div>
-                <div>وصف البضاعة: <strong>{mission.cargoType || 'مهمات ومطبوعات بريدية ونماذج رسمية'}</strong></div>
+                <div>وصف البضاعة: <strong>{mission.cargoType || 'اثاثات مكتبيه'}</strong></div>
                 <div>وزن / حجم الحمولة: <strong>{mission.cargoWeight || 'حسب إذن التحميل الفعلي'}</strong></div>
                 <div className="text-[11px] text-slate-500">حالة الشحنة: مغلفة ومطابقة لأمر التحميل المخزني</div>
               </div>
