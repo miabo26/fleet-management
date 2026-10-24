@@ -1,8 +1,7 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, doc, onSnapshot } from 'firebase/firestore';
 
 // Client-side Firebase configuration
-// Can be customized via Vite environment variables or defaults
 export const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyDummyKeyForFleetEgyptPost2026",
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "egypt-post-fleet.firebaseapp.com",
@@ -25,6 +24,22 @@ try {
   db = getFirestore(app);
 } catch (err) {
   console.warn('Firebase client SDK initialized in offline mode:', err.message);
+}
+
+// Realtime listener for instant live updates from Cloud Firestore
+export function subscribeToFleetData(onDataUpdate) {
+  if (!db) return () => {};
+  try {
+    return onSnapshot(doc(db, 'fleet_database', 'main'), (docSnap) => {
+      if (docSnap.exists() && docSnap.data() && docSnap.data().data) {
+        onDataUpdate(docSnap.data().data);
+      }
+    }, (err) => {
+      console.warn('Firestore live subscription fallback:', err.message);
+    });
+  } catch (e) {
+    return () => {};
+  }
 }
 
 export { app, db };

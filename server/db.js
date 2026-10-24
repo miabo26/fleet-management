@@ -59,35 +59,50 @@ if (process.env.MONGODB_URI) {
 let firestoreDb = null;
 let isFirebaseConnected = false;
 
-function initFirebase() {
+async function initFirebase() {
   try {
     const admin = require('firebase-admin');
+    if (admin.apps.length === 0) {
+      if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+        let serviceAccount;
+        try {
+          serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+        } catch (e) {
+          serviceAccount = require(path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT));
+        }
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount)
+        });
+        console.log('🔥 Connected to Google Cloud Firestore via service account!');
+      } else if (process.env.FIREBASE_PROJECT_ID) {
+        admin.initializeApp({
+          projectId: process.env.FIREBASE_PROJECT_ID
+        });
+        console.log(`🔥 Connected to Google Cloud Firestore (Project: ${process.env.FIREBASE_PROJECT_ID})`);
+      }
+    }
+
     if (admin.apps.length > 0) {
       firestoreDb = admin.firestore();
       isFirebaseConnected = true;
-      return;
-    }
 
-    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-      let serviceAccount;
+      // Sync cloud data to local on startup if available
       try {
-        serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-      } catch (e) {
-        serviceAccount = require(path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT));
+        const docSnap = await firestoreDb.collection('fleet_database').doc('main').get();
+        if (docSnap.exists && docSnap.data() && docSnap.data().data) {
+          console.log('🔄 Synced fleet database from Google Cloud Firestore.');
+          writeDbLocal(docSnap.data().data, false);
+        } else {
+          const local = readDb();
+          await firestoreDb.collection('fleet_database').doc('main').set({
+            data: local,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+          console.log('☁️ Initialized Google Cloud Firestore from current fleet records.');
+        }
+      } catch (syncErr) {
+        console.warn('Firestore initial sync notice:', syncErr.message);
       }
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-      });
-      firestoreDb = admin.firestore();
-      isFirebaseConnected = true;
-      console.log('🔥 Connected to Google Cloud Firestore via service account!');
-    } else if (process.env.FIREBASE_PROJECT_ID) {
-      admin.initializeApp({
-        projectId: process.env.FIREBASE_PROJECT_ID
-      });
-      firestoreDb = admin.firestore();
-      isFirebaseConnected = true;
-      console.log(`🔥 Connected to Google Cloud Firestore (Project: ${process.env.FIREBASE_PROJECT_ID})`);
     }
   } catch (err) {
     console.warn('Firebase initialization notice:', err.message);
