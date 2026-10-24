@@ -39,12 +39,6 @@ export default function LoginScreen({ onLoginSuccess }) {
     }
   };
 
-  const handleQuickLogin = (quickUser, quickPass) => {
-    setUsername(quickUser);
-    setPassword(quickPass);
-    setError('');
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 flex flex-col justify-center items-center p-4 sm:p-6 text-white relative overflow-hidden" dir="rtl">
       
@@ -100,7 +94,7 @@ export default function LoginScreen({ onLoginSuccess }) {
                 type="text"
                 required
                 autoFocus
-                placeholder="مثال: admin أو 01159700466"
+                placeholder="أدخل اسم المستخدم أو رقم الهاتف"
                 value={username}
                 onChange={e => setUsername(e.target.value)}
                 className="w-full pl-3 pr-10 py-2.5 bg-slate-800/90 border border-slate-700 rounded-xl text-xs sm:text-sm font-bold text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-all"
@@ -118,7 +112,7 @@ export default function LoginScreen({ onLoginSuccess }) {
               <input
                 type={showPassword ? "text" : "password"}
                 required
-                placeholder="أدخل كلمة المرور الخاصة بحسابك"
+                placeholder="أدخل كلمة المرور"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 className="w-full pl-10 pr-10 py-2.5 bg-slate-800/90 border border-slate-700 rounded-xl text-xs sm:text-sm font-bold text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 transition-all font-mono"
@@ -152,54 +146,10 @@ export default function LoginScreen({ onLoginSuccess }) {
           </button>
         </form>
 
-        {/* Quick Demo Credentials for Fast Testing */}
-        <div className="pt-3 border-t border-slate-800 space-y-2">
-          <span className="text-[11px] font-bold text-slate-400 block text-center">
-            حسابات الدخول الافتراضية (انقر للتعبئة السريعة):
-          </span>
-          <div className="grid grid-cols-2 gap-2 text-[10px]">
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('admin', 'admin2026')}
-              className="p-2 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-emerald-500/50 rounded-xl text-right transition-colors cursor-pointer group"
-            >
-              <strong className="text-amber-400 block group-hover:text-amber-300">م/ محمد ابراهيم (تحكم كامل)</strong>
-              <span className="text-slate-400 font-mono">admin / admin2026</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('operations', 'op123456')}
-              className="p-2 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-blue-500/50 rounded-xl text-right transition-colors cursor-pointer group"
-            >
-              <strong className="text-blue-400 block group-hover:text-blue-300">مسؤول حركة وتشغيل</strong>
-              <span className="text-slate-400 font-mono">operations / op123456</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('warehouse', 'wh123456')}
-              className="p-2 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-purple-500/50 rounded-xl text-right transition-colors cursor-pointer group"
-            >
-              <strong className="text-purple-400 block group-hover:text-purple-300">أمين مخزن إقليمي</strong>
-              <span className="text-slate-400 font-mono">warehouse / wh123456</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleQuickLogin('viewer', 'view1234')}
-              className="p-2 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 hover:border-slate-500/50 rounded-xl text-right transition-colors cursor-pointer group"
-            >
-              <strong className="text-slate-300 block">مشاهد واستعلام فقط</strong>
-              <span className="text-slate-400 font-mono">viewer / view1234</span>
-            </button>
-          </div>
-        </div>
-
         {/* Protection Note */}
-        <div className="text-center text-[10px] text-slate-500 flex items-center justify-center gap-1">
-          <KeyRound className="w-3 h-3 text-slate-400" />
-          <span>منظومة محمية ومخصصة للاستخدام المصرح به فقط</span>
+        <div className="pt-2 border-t border-slate-800/80 text-center text-xs text-slate-400 flex items-center justify-center gap-1.5">
+          <KeyRound className="w-3.5 h-3.5 text-emerald-400" />
+          <span>بوابة رسمية محمية ومخصصة للاستخدام المصرح به فقط</span>
         </div>
 
       </div>
