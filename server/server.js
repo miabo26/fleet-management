@@ -92,10 +92,10 @@ function calculateStats(db) {
   const leaveDrivers = db.drivers.filter(d => d.status === 'إجازة' || d.status === 'اجازة' || (typeof d.status === 'string' && d.status.includes('إجازة'))).length;
   
   const totalVehicles = db.vehicles.length;
-  const availableVehicles = db.vehicles.filter(v => v.status === 'متاحة').length;
+  const availableVehicles = db.vehicles.filter(v => v.status === 'متاحة' || (typeof v.status === 'string' && v.status.includes('متاحة'))).length;
   const onMissionVehicles = db.vehicles.filter(v => v.status === 'في مأمورية').length;
   const maintenanceVehicles = db.vehicles.filter(v => v.status === 'صيانة').length;
-  const leaveVehicles = db.vehicles.filter(v => v.status === 'سائق بإجازة').length;
+  const leaveVehicles = db.vehicles.filter(v => typeof v.status === 'string' && v.status.includes('إجازة')).length;
 
   const totalFuelCost = db.missions.reduce((acc, m) => acc + (Number(m.fuelExpense) || 0), 0);
   const totalTollsCost = db.missions.reduce((acc, m) => acc + (Number(m.tollExpense) || 0), 0);
@@ -757,9 +757,17 @@ app.post('/api/driver/login', (req, res) => {
     }
   }
 
-  // Find assigned vehicle
+  // Find active mission first
+  const activeMission = db.missions.find(m => 
+    m.driverId === driver.id && ['assigned', 'loading', 'on_road'].includes(m.status)
+  ) || null;
+
+  // Find assigned vehicle (Priority 1: vehicle assigned to this active mission, Priority 2: driver's default vehicle)
   let assignedVehicle = null;
-  if (driver.assignedVehicleId) {
+  if (activeMission && activeMission.vehicleId) {
+    assignedVehicle = db.vehicles.find(v => v.id === activeMission.vehicleId);
+  }
+  if (!assignedVehicle && driver.assignedVehicleId) {
     assignedVehicle = db.vehicles.find(v => v.id === driver.assignedVehicleId);
   }
   if (!assignedVehicle) {
@@ -768,11 +776,6 @@ app.post('/api/driver/login', (req, res) => {
   if (!assignedVehicle) {
     assignedVehicle = db.vehicles.find(v => v.type === driver.vehicleCategory);
   }
-
-  // Find active mission
-  const activeMission = db.missions.find(m => 
-    m.driverId === driver.id && ['assigned', 'loading', 'on_road'].includes(m.status)
-  ) || null;
 
   // Match destination warehouse for Google Maps navigation
   let destinationWarehouse = null;
@@ -832,8 +835,21 @@ app.get('/api/driver/me/:id', (req, res) => {
   const driver = db.drivers.find(d => d.id === req.params.id);
   if (!driver) return res.status(404).json({ error: 'السائق غير موجود' });
 
-  let assignedVehicle = db.vehicles.find(v => v.driverId === driver.id || v.id === driver.assignedVehicleId || v.type === driver.vehicleCategory);
   const activeMission = db.missions.find(m => m.driverId === driver.id && ['assigned', 'loading', 'on_road'].includes(m.status)) || null;
+
+  let assignedVehicle = null;
+  if (activeMission && activeMission.vehicleId) {
+    assignedVehicle = db.vehicles.find(v => v.id === activeMission.vehicleId);
+  }
+  if (!assignedVehicle && driver.assignedVehicleId) {
+    assignedVehicle = db.vehicles.find(v => v.id === driver.assignedVehicleId);
+  }
+  if (!assignedVehicle) {
+    assignedVehicle = db.vehicles.find(v => v.driverId === driver.id);
+  }
+  if (!assignedVehicle) {
+    assignedVehicle = db.vehicles.find(v => v.type === driver.vehicleCategory);
+  }
 
   let destinationWarehouse = null;
   if (activeMission) {

@@ -884,10 +884,10 @@ function syncFleetStatus(db) {
     } else if (vehicle.status === "صيانة") {
       vehicle.activeMission = null;
     } else if ((vehicle.driverId && leaveDriverIds.has(vehicle.driverId)) || leaveVehicleIds.has(vehicle.id)) {
-      vehicle.status = "سائق بإجازة";
+      vehicle.status = "متاحة (سائقها بإجازة)";
       vehicle.activeMission = null;
     } else {
-      if (vehicle.status === "في مأمورية" || vehicle.status === "سائق بإجازة") {
+      if (vehicle.status === "في مأمورية" || vehicle.status.includes("إجازة")) {
         vehicle.status = "متاحة";
       }
       vehicle.activeMission = null;

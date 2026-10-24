@@ -84,8 +84,8 @@ export function getVehicleDispatchRecommendations({
     const driverOnMission = assignedDriver && assignedDriver.status === 'في مأمورية';
     const driverName = assignedDriver ? assignedDriver.name : 'غير محدد';
 
-    // A vehicle is genuinely available ONLY if its own status is 'متاحة' and its driver is not on leave
-    const isAvailable = (v.status === 'متاحة') && !driverOnLeave;
+    // A vehicle is available if its status is 'متاحة' (even if its regular driver is on leave, another available driver can operate it)
+    const isAvailable = (v.status === 'متاحة' || v.status === 'سائق بإجازة' || (typeof v.status === 'string' && v.status.includes('متاحة'))) && v.status !== 'صيانة' && v.status !== 'في مأمورية';
 
     // Count missions for this specific vehicle to this destination this week
     const vehicleDestMissions = destMissionsThisWeek.filter(m => m.vehicleId === v.id);
@@ -107,10 +107,11 @@ export function getVehicleDispatchRecommendations({
     let hasAchievedMinTwo = false;
 
     if (driverOnLeave) {
-      recommendationType = 'driver_on_leave';
-      recommendationLabel = `السائق (${driverName}) في إجازة رسمية - لا يمكن إسناد مأمورية`;
-      recommendationTag = `🏖️ سائقها في إجازة`;
-      badgeClass = 'bg-rose-100 text-rose-800 border-rose-300';
+      recommendationType = 'substitute_available';
+      recommendationLabel = `الشاحنة متاحة بالجراج (سائقها المعتاد ${driverName} في إجازة — جاهزة لتكليف سائق بديل)`;
+      recommendationTag = `🔄 متاحة للتشغيل البديل`;
+      badgeClass = 'bg-blue-100 text-blue-800 border-blue-300';
+      isRecommended = isAvailable;
     } else if (destCount === 0) {
       // 0 missions to this destination this week -> HIGHEST RECOMMENDATION (لعدالة التوزيع)
       isRecommended = isAvailable;
