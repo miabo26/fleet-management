@@ -704,14 +704,19 @@ app.delete('/api/drivers/:id', (req, res) => {
 // 1. Get simplified drivers list for mobile portal quick selection
 app.get('/api/driver/list', (req, res) => {
   const db = readDb();
-  const driversList = (db.drivers || []).map(d => ({
-    id: d.id,
-    name: d.name,
-    role: d.role,
-    phone: d.phone,
-    vehicleCategory: d.vehicleCategory,
-    status: d.status
-  }));
+  const driversList = (db.drivers || []).map(d => {
+    const assignedVehicle = (db.vehicles || []).find(v => v.driverId === d.id || v.id === d.assignedVehicleId || v.type === d.vehicleCategory);
+    return {
+      id: d.id,
+      name: d.name,
+      role: d.role,
+      phone: d.phone,
+      vehicleCategory: d.vehicleCategory,
+      vehicleCode: assignedVehicle?.code || '',
+      vehiclePlate: assignedVehicle?.plateNumber || '',
+      status: d.status
+    };
+  });
   res.json(driversList);
 });
 

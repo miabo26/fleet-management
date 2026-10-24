@@ -388,6 +388,9 @@ export function generateWhatsAppMissionUrl(mission, customPhone = '') {
   const cleanPhone = targetPhone.replace(/\D/g, '');
   const egPhone = cleanPhone.startsWith('0') ? '2' + cleanPhone : cleanPhone.startsWith('20') ? cleanPhone : '20' + cleanPhone;
 
+  const origin = typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'https://fleet-management-jmuu.onrender.com';
+  const driverDirectLink = `${origin}/?driver=${mission.driverId || ''}`;
+
   const text = `السلام عليكم ورحمة الله يا أسطى ${mission.driverName || ''} 🚚
 الهيئة القومية للبريد المصري — إدارة تشغيل وحركة الأسطول
 تم إسناد مأمورية بريدية جديدة لسيادتكم:
@@ -399,7 +402,10 @@ export function generateWhatsAppMissionUrl(mission, customPhone = '') {
 💰 العهدة النقدية: ${mission.cashAdvance || 0} ج.م
 ⏱️ مدة الإشغال المقررة: ${mission.occupancyDays || 1} أيام (${mission.schedulePattern || ''})
 
-رافقتكم السلامة — إدارة الدعم والحركة (م/ محمد ابراهيم ابوالمعاطى: 01159700466)`;
+🔗 اضغط هنا لفتح بوابتك الذكية والملاحة في Google Maps فوراً:
+${driverDirectLink}
+
+رافقكم السلامة — إدارة الدعم والحركة (م/ محمد ابراهيم ابوالمعاطى: 01159700466)`;
 
   return `https://wa.me/${egPhone}?text=${encodeURIComponent(text)}`;
 }

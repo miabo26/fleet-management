@@ -33,9 +33,12 @@ import {
   addMaintenanceLog,
   resetDatabase,
   getStoredUser,
+  setStoredUser,
   loginUser,
   logoutUser,
   fetchCurrentUser,
+  fetchDriverPortalMe,
+  driverLogin,
   createUser,
   updateUser,
   deleteUser
@@ -96,8 +99,54 @@ export default function App() {
   useEffect(() => {
     const initAuth = async () => {
       try {
+        // 1. Check URL parameters for direct 1-tap driver links: ?driver=drv-1 or ?phone=010...
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlDriverId = urlParams.get('driver');
+        const urlDriverPhone = urlParams.get('phone');
+        if (urlDriverId || urlDriverPhone) {
+          try {
+            const driverRes = await driverLogin(urlDriverId || null, urlDriverPhone || null);
+            if (driverRes && driverRes.driver) {
+              handleDriverLogin(driverRes);
+              window.history.replaceState({}, document.title, window.location.pathname);
+              setAuthChecking(false);
+              return;
+            }
+          } catch (paramErr) {
+            console.error('URL Driver login failed:', paramErr);
+          }
+        }
+
+        // 2. Check stored session
         const stored = getStoredUser();
         if (stored) {
+          // If stored user is a driver, refresh their portal data and keep them logged in permanently!
+          if (stored.role === 'driver') {
+            try {
+              const driverPortal = await fetchDriverPortalMe(stored.id);
+              if (driverPortal && driverPortal.driver) {
+                const refreshedDriver = {
+                  id: driverPortal.driver.id,
+                  name: driverPortal.driver.name,
+                  role: 'driver',
+                  roleLabel: 'سائق بالأسطول',
+                  phone: driverPortal.driver.phone,
+                  driverData: driverPortal
+                };
+                setStoredUser(refreshedDriver);
+                setCurrentUser(refreshedDriver);
+                setAuthChecking(false);
+                return;
+              }
+            } catch (dErr) {
+              console.warn('Driver portal refresh failed, using cached session:', dErr);
+              setCurrentUser(stored);
+              setAuthChecking(false);
+              return;
+            }
+          }
+
+          // Otherwise staff / admin user
           const verified = await fetchCurrentUser();
           if (verified) {
             setCurrentUser(verified);

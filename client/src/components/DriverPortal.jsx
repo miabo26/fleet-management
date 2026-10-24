@@ -19,7 +19,9 @@ import {
   AlertCircle,
   X,
   Send,
-  Star
+  Star,
+  Locate,
+  PhoneCall
 } from 'lucide-react';
 import EgyptPostLogo from './EgyptPostLogo';
 import { 
@@ -46,6 +48,33 @@ export default function DriverPortal({
     location: ''
   });
   const [emergencySending, setEmergencySending] = useState(false);
+  const [isDetectingGps, setIsDetectingGps] = useState(false);
+
+  // Quick GPS Detector for roadside emergencies
+  const handleDetectGps = () => {
+    if (!navigator.geolocation) {
+      alert('خدمة الـ GPS غير مدعومة على هذا المتصفح');
+      return;
+    }
+    setIsDetectingGps(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setIsDetectingGps(false);
+        const lat = pos.coords.latitude.toFixed(6);
+        const lng = pos.coords.longitude.toFixed(6);
+        const mapsUrl = `https://maps.google.com/?q=${lat},${lng}`;
+        setEmergencyForm(prev => ({
+          ...prev,
+          location: `${prev.location ? prev.location + ' | ' : ''}موقع GPS: ${mapsUrl}`
+        }));
+      },
+      (err) => {
+        setIsDetectingGps(false);
+        alert('تعذر جلب إحداثيات GPS: تأكد من تفعيل خدمة الموقع في الهاتف');
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  };
 
   const driver = data?.driver;
   const assignedVehicle = data?.assignedVehicle;
@@ -429,22 +458,49 @@ export default function DriverPortal({
 
       </main>
 
+      {/* FLOATING PERSISTENT EMERGENCY SOS BUTTON (ALWAYS VISIBLE FOR ROADSIDE BREAKDOWNS) */}
+      <div className="fixed bottom-5 left-4 z-40">
+        <button
+          type="button"
+          onClick={() => setIsEmergencyModalOpen(true)}
+          className="py-3 px-4 rounded-2xl bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:from-rose-500 hover:to-red-500 text-white font-black text-xs shadow-2xl shadow-rose-600/50 border-2 border-rose-400/40 flex items-center gap-2 cursor-pointer transition-all hover:scale-105 active:scale-95 animate-pulse"
+        >
+          <span className="text-base">🚨</span>
+          <span>طوارئ وعطل مفاجئ</span>
+        </button>
+      </div>
+
       {/* EMERGENCY BREAKDOWN MODAL */}
       {isEmergencyModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-rose-500/40 rounded-3xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between">
+        <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-slate-900 border-2 border-rose-500/50 rounded-3xl p-5 sm:p-6 w-full max-w-sm space-y-4 shadow-2xl text-white">
+            
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2 text-rose-400">
                 <AlertTriangle className="w-5 h-5" />
-                <h3 className="text-sm font-black text-white m-0">إبلاغ عن عطل طارئ على الطريق</h3>
+                <h3 className="text-sm font-black text-white m-0">استغاثة وعطل طارئ على الطريق</h3>
               </div>
               <button 
                 onClick={() => setIsEmergencyModalOpen(false)}
-                className="text-slate-400 hover:text-white"
+                className="p-1 rounded-xl bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Direct Phone Call Button */}
+            <a
+              href="tel:01159700466"
+              className="w-full py-3 px-3.5 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs flex items-center justify-between shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <PhoneCall className="w-4 h-4 animate-bounce" />
+                <span>اتصال مباشر: م/ محمد ابوالمعاطى</span>
+              </div>
+              <span className="font-mono text-[11px] bg-emerald-950/60 px-2 py-0.5 rounded-lg border border-emerald-400/30 font-bold" dir="ltr">
+                01159700466
+              </span>
+            </a>
 
             <form onSubmit={handleSendEmergency} className="space-y-3 text-xs">
               <div>
@@ -464,10 +520,21 @@ export default function DriverPortal({
               </div>
 
               <div>
-                <label className="block text-slate-300 font-bold mb-1">الموقع الحالي على الطريق التقريبي:</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-slate-300 font-bold">الموقع الحالي على الطريق:</label>
+                  <button
+                    type="button"
+                    onClick={handleDetectGps}
+                    disabled={isDetectingGps}
+                    className="text-[10px] text-blue-400 hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                  >
+                    <Locate className={`w-3 h-3 ${isDetectingGps ? 'animate-spin' : ''}`} />
+                    <span>{isDetectingGps ? 'جاري التحديد...' : 'تحديد موقعي GPS 📍'}</span>
+                  </button>
+                </div>
                 <input
                   type="text"
-                  placeholder="مثال: طريق الصعيد الصحراوي الشرقي قبل بني سويف بـ 20 كم"
+                  placeholder="مثال: طريق الصعيد الصحراوي قبل بني سويف بـ 20 كم"
                   value={emergencyForm.location}
                   onChange={e => setEmergencyForm({ ...emergencyForm, location: e.target.value })}
                   className="w-full bg-slate-800 border border-slate-700 rounded-xl p-2.5 text-white"
@@ -478,7 +545,7 @@ export default function DriverPortal({
                 <label className="block text-slate-300 font-bold mb-1">تفاصيل العطل وما تحتاجه:</label>
                 <textarea
                   required
-                  rows={3}
+                  rows={2}
                   placeholder="صف ما حدث بالضبط وحالة السيارة..."
                   value={emergencyForm.description}
                   onChange={e => setEmergencyForm({ ...emergencyForm, description: e.target.value })}
@@ -486,21 +553,36 @@ export default function DriverPortal({
                 />
               </div>
 
-              <div className="pt-2 flex items-center justify-end gap-2">
+              {/* Direct WhatsApp Emergency link */}
+              <a
+                href={`https://wa.me/201159700466?text=${encodeURIComponent(`🚨 استغاثة عطل طارئ من السائق: ${driver?.name || ''}
+الشاحنة: ${assignedVehicle?.code || ''} (${assignedVehicle?.plateNumber || ''})
+المشكلة: ${emergencyForm.issueType}
+الموقع: ${emergencyForm.location || 'على طريق السير'}
+التفاصيل: ${emergencyForm.description || 'أحتاج ونش أو دعم فني فوراً'}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>إرسال استغاثة فورية بالواتساب 📲</span>
+              </a>
+
+              <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsEmergencyModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-700 text-slate-400 font-bold"
+                  className="px-3.5 py-2 rounded-xl border border-slate-700 text-slate-400 font-bold cursor-pointer"
                 >
                   إلغاء
                 </button>
                 <button
                   type="submit"
                   disabled={emergencySending}
-                  className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black shadow-md cursor-pointer flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black shadow-md cursor-pointer flex items-center gap-1.5"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>{emergencySending ? 'جاري الإرسال...' : 'إرسال البلاغ فوراً'}</span>
+                  <span>{emergencySending ? 'جاري الإرسال...' : 'تسجيل بلاغ بالمنظومة'}</span>
                 </button>
               </div>
             </form>
