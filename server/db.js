@@ -55,6 +55,50 @@ if (process.env.MONGODB_URI) {
   initMongo();
 }
 
+// Google Cloud Firebase Firestore Integration
+let firestoreDb = null;
+let isFirebaseConnected = false;
+
+function initFirebase() {
+  try {
+    const admin = require('firebase-admin');
+    if (admin.apps.length > 0) {
+      firestoreDb = admin.firestore();
+      isFirebaseConnected = true;
+      return;
+    }
+
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      let serviceAccount;
+      try {
+        serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      } catch (e) {
+        serviceAccount = require(path.resolve(process.env.FIREBASE_SERVICE_ACCOUNT));
+      }
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+      firestoreDb = admin.firestore();
+      isFirebaseConnected = true;
+      console.log('🔥 Connected to Google Cloud Firestore via service account!');
+    } else if (process.env.FIREBASE_PROJECT_ID) {
+      admin.initializeApp({
+        projectId: process.env.FIREBASE_PROJECT_ID
+      });
+      firestoreDb = admin.firestore();
+      isFirebaseConnected = true;
+      console.log(`🔥 Connected to Google Cloud Firestore (Project: ${process.env.FIREBASE_PROJECT_ID})`);
+    }
+  } catch (err) {
+    console.warn('Firebase initialization notice:', err.message);
+    isFirebaseConnected = false;
+  }
+}
+
+if (process.env.FIREBASE_PROJECT_ID || process.env.FIREBASE_SERVICE_ACCOUNT) {
+  initFirebase();
+}
+
 // Initial seed data based exactly on User Specifications
 const initialData = {
   warehouses: [
@@ -510,6 +554,16 @@ function writeDbLocal(data, syncToCloud = true) {
       });
     }
 
+    // 5. Sync to Google Cloud Firestore if connected
+    if (syncToCloud && isFirebaseConnected && firestoreDb) {
+      firestoreDb.collection('fleet_database').doc('main').set({
+        data,
+        updatedAt: new Date().toISOString()
+      }, { merge: true }).catch(err => {
+        console.error('Error syncing to Google Cloud Firestore:', err.message);
+      });
+    }
+
     return true;
   } catch (err) {
     console.error("Error writing database:", err);
@@ -587,8 +641,14 @@ function getDatabaseStats() {
   const backups = listAvailableBackups();
 
   return {
-    isCloudConnected: isMongoConnected,
-    storageType: isMongoConnected ? 'قاعدة بيانات سحابية متزامنة (MongoDB Atlas) ☁️' : 'تخزين آمن محلي مع لقطات نسخ احتياطي دورية 💾',
+    isCloudConnected: isMongoConnected || isFirebaseConnected,
+    isFirebaseConnected,
+    isMongoConnected,
+    storageType: isFirebaseConnected 
+      ? 'Google Cloud Firestore (سحابي معتمد من Google) 🔥' 
+      : isMongoConnected 
+      ? 'قاعدة بيانات سحابية متزامنة (MongoDB Atlas) ☁️' 
+      : 'تخزين آمن محلي مع لقطات نسخ احتياطي دورية 💾',
     fileSizeKb: (fileSize / 1024).toFixed(1),
     lastModified,
     totalRecords: {

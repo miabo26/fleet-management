@@ -1,0 +1,627 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// This security rules file assumes the following data structures for
+// Egypt Post Fleet & Logistics Management System (منظومة إدارة أسطول النقل والمخازن الإقليمية):
+//
+// Collection: warehouses
+// Document ID: alphanumeric string (e.g., 'loc-garage-shubra', 'loc-main-tagamoa')
+// Fields:
+//   - id: string (optional, <= 64 chars, immutable on update)
+//   - name: string (required, 2..150 chars)
+//   - type: string (required, enum: 'garage' | 'main_warehouse' | 'regional_warehouse' | 'branch_warehouse')
+//   - category: string (optional, <= 100 chars)
+//   - city: string (required, 2..100 chars)
+//   - address: string (required, 2..300 chars)
+//   - coordinates: latlng or list of 2 numbers [lat, lng] (optional)
+//   - manager: string (optional, <= 100 chars)
+//   - phone: string (optional, <= 30 chars)
+//   - isMain: bool (optional)
+//   - plusCode: string (optional, <= 30 chars)
+//   - postalCode: string (optional, <= 20 chars)
+//   - landmark: string (optional, <= 200 chars)
+//   - googleMapsUrl: string (optional, <= 500 chars)
+//   - createdAt: timestamp or ISO string (optional)
+//   - updatedAt: timestamp or ISO string (optional)
+//
+// Collection: drivers
+// Document ID: alphanumeric string (e.g., 'drv-1', 'drv-179286...')
+// Fields:
+//   - id: string (optional, <= 64 chars, immutable on update)
+//   - name: string (required, 2..100 chars)
+//   - role: string (required, 2..60 chars)
+//   - vehicleCategory: string (optional, <= 60 chars)
+//   - phone: string (optional, <= 30 chars)
+//   - nationalId: string (optional, <= 25 chars)
+//   - licenseNumber: string (optional, <= 35 chars)
+//   - licenseExpiry: string (optional, <= 35 chars)
+//   - status: string (required, enum: 'متاح' | 'في مأمورية' | 'إجازة' | 'اجازة' | 'معطل' | 'متوقف' | 'available' | 'on_mission' | 'on_leave')
+//   - rating: number (optional, 0..5)
+//   - assignedVehicleId: string or null (optional, <= 64 chars)
+//   - totalMissions: number (optional, >= 0)
+//   - notes: string (optional, <= 1000 chars)
+//   - activeMission: map or null (optional)
+//   - userId: string (optional, <= 64 chars)
+//   - createdAt: timestamp or ISO string (optional)
+//   - updatedAt: timestamp or ISO string (optional)
+//
+// Collection: vehicles
+// Document ID: alphanumeric string (e.g., 'veh-box-1', 'veh-canter-1')
+// Fields:
+//   - id: string (optional, <= 64 chars, immutable on update)
+//   - code: string (optional, <= 50 chars)
+//   - plateNumber: string (required, 1..30 chars)
+//   - type: string (required, 2..60 chars)
+//   - model: string (optional, <= 100 chars)
+//   - year: number or null (optional, 1980..2050)
+//   - capacity: string (optional, <= 50 chars)
+//   - status: string (required, enum: 'متاحة' | 'في مأمورية' | 'صيانة' | 'سائق بإجازة' | 'معطلة' | 'available' | 'on_mission' | 'maintenance')
+//   - currentLocation: string (optional, <= 150 chars)
+//   - odometer: number (optional, >= 0)
+//   - fuelType: string (optional, <= 30 chars)
+//   - fuelTankCapacity: number (optional, >= 0)
+//   - licenseExpiry: string (optional, <= 35 chars)
+//   - nextMaintenanceKm: number (optional, >= 0)
+//   - driverId: string or null (optional, <= 64 chars)
+//   - activeMission: map or null (optional)
+//   - createdAt: timestamp or ISO string (optional)
+//   - updatedAt: timestamp or ISO string (optional)
+//
+// Collection: missions
+// Document ID: alphanumeric string (e.g., 'ms-1', 'mis-179286...')
+// Fields:
+//   - id: string (optional, <= 64 chars, immutable on update)
+//   - missionNumber: string (optional, <= 50 chars, immutable on update)
+//   - title: string (optional, <= 200 chars)
+//   - driverId: string (required, 1..64 chars, immutable by drivers on update)
+//   - driverName: string (optional, <= 100 chars)
+//   - driverPhone: string (optional, <= 30 chars)
+//   - driverUserId: string (optional, <= 64 chars)
+//   - vehicleId: string (required, 1..64 chars, immutable by drivers on update)
+//   - vehicleCode: string (optional, <= 50 chars)
+//   - vehiclePlate: string (optional, <= 30 chars)
+//   - vehicleType: string (optional, <= 60 chars)
+//   - originId: string (optional, <= 64 chars)
+//   - originName: string (optional, <= 150 chars)
+//   - destinationId: string (required, 1..64 chars)
+//   - destinationName: string (optional, <= 150 chars)
+//   - status: string (required, enum: 'draft' | 'assigned' | 'loading' | 'on_road' | 'delivered' | 'completed' | 'cancelled')
+//   - occupancyDays: number (optional, >= 0)
+//   - schedulePattern: string (optional, <= 100 chars)
+//   - scheduleType: string (optional, <= 50 chars)
+//   - durationLabel: string (optional, <= 100 chars)
+//   - scheduleSteps: list of strings (optional, <= 20 items)
+//   - cargoType: string (optional, <= 150 chars)
+//   - cargoWeight: string (optional, <= 50 chars)
+//   - dispatchOrderNumber: string (optional, <= 50 chars)
+//   - departureDate: timestamp or string (optional, <= 50 chars)
+//   - expectedArrival: timestamp or string (optional, <= 50 chars)
+//   - expectedReturnDate: timestamp or string (optional, <= 50 chars)
+//   - actualArrival: timestamp, string, or null (optional, <= 50 chars)
+//   - completedDate: timestamp, string, or null (optional, <= 50 chars)
+//   - startOdometer: number (optional, >= 0)
+//   - endOdometer: number or null (optional, >= 0)
+//   - distanceKm: number (optional, >= 0)
+//   - cashAdvance: number (optional, >= 0, immutable by drivers)
+//   - fuelExpense: number (optional, >= 0)
+//   - fuelLiters: number (optional, >= 0)
+//   - fuelPricePerLiter: number (optional, >= 0)
+//   - fuelReceiptNumber: string (optional, <= 50 chars)
+//   - fuelEfficiencyLitersPer100Km: number or null (optional)
+//   - kmPerLiter: number or null (optional)
+//   - fuelCostPerKm: number or null (optional)
+//   - fuelWasteCost: number or null (optional)
+//   - tollExpense: number (optional, >= 0)
+//   - driverAllowance: number (optional, >= 0)
+//   - otherExpenses: number (optional, >= 0)
+//   - remainingCash: number (optional)
+//   - notes: string (optional, <= 1000 chars)
+//   - driverNotes: string (optional, <= 1000 chars)
+//   - createdAt: timestamp or ISO string (optional, immutable on update)
+//   - updatedAt: timestamp or ISO string (optional)
+//
+// Collection: maintenanceLogs
+// Document ID: alphanumeric string (e.g., 'maint-179286...')
+// Fields:
+//   - id: string (optional, <= 64 chars, immutable on update)
+//   - vehicleId: string (required, 1..64 chars)
+//   - vehiclePlate: string (optional, <= 30 chars)
+//   - vehicleCode: string (optional, <= 50 chars)
+//   - date: timestamp or ISO string (optional, <= 50 chars)
+//   - type: string (required, 2..100 chars)
+//   - cost: number (required, >= 0)
+//   - odometer: number (optional, >= 0)
+//   - workshop: string (required, 2..150 chars)
+//   - notes: string (optional, <= 1000 chars)
+//   - createdAt: timestamp or ISO string (optional, immutable on update)
+//   - updatedAt: timestamp or ISO string (optional)
+//
+// Collection: users
+// Document ID: userId matching Firebase Auth UID or system id
+// Fields:
+//   - id: string (optional, <= 64 chars, immutable on update)
+//   - name: string (required, 2..100 chars)
+//   - username: string (required, 2..50 chars)
+//   - password: string (optional, <= 100 chars)
+//   - role: string (required, enum: 'admin' | 'dispatcher' | 'warehouse_manager' | 'viewer' | 'driver')
+//   - roleLabel: string (optional, <= 100 chars)
+//   - phone: string (optional, <= 30 chars)
+//   - department: string (optional, <= 100 chars)
+//   - status: string (optional, enum: 'active' | 'inactive' | 'suspended')
+//   - permissions: list of strings (optional, <= 50 items)
+//   - driverId: string (optional, <= 64 chars)
+//   - createdAt: timestamp or ISO string (optional, immutable on update)
+//   - updatedAt: timestamp or ISO string (optional)
+//
+// Collection: auditLogs (Tamper-Proof Audit Trail)
+// Document ID: logId string
+// Fields:
+//   - id: string (optional, <= 64 chars)
+//   - timestamp: timestamp or ISO string (optional, <= 50 chars)
+//   - actionType: string (required, 2..50 chars)
+//   - actionLabel: string (required, 2..150 chars)
+//   - entity: string (required, 2..50 chars)
+//   - entityId: string or null (optional, <= 64 chars)
+//   - details: string (optional, <= 2000 chars)
+//   - userId: string (required, 1..64 chars)
+//   - userName: string (optional, <= 100 chars)
+//   - userRole: string (optional, <= 50 chars)
+//   - userPhone: string (optional, <= 30 chars)
+//   - userDepartment: string (optional, <= 100 chars)
+//   - createdAt: timestamp or ISO string (optional)
+//
+// Collection: databaseSnapshots
+// Document ID: snapshotId string
+// Fields:
+//   - id: string (optional, <= 64 chars, immutable on update)
+//   - filename: string (optional, <= 150 chars)
+//   - data: map (required)
+//   - stats: map (optional)
+//   - createdBy: string (optional, <= 64 chars)
+//   - createdAt: timestamp or ISO string (optional, immutable on update)
+//   - updatedAt: timestamp or ISO string (optional)
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Global Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && ('uid' in resource.data) && request.auth.uid == resource.data.uid;
+    }
+
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == resource.data.uid;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    function validStringLength(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !(field in request.resource.data) ||
+        (request.resource.data[field] is string &&
+         request.resource.data[field].size() >= minLen &&
+         request.resource.data[field].size() <= maxLen);
+    }
+
+    function isValidList(listVal, maxSize) {
+      return listVal is list && listVal.size() <= maxSize;
+    }
+
+    function isValidMap(mapData, allowedKeys) {
+      return mapData is map && mapData.keys().hasOnly(allowedKeys);
+    }
+
+    function isPositive(field) {
+      return request.resource.data[field] is number && request.resource.data[field] > 0;
+    }
+
+    function isValidUrl(url) {
+      return url is string &&
+        url.size() <= 500 &&
+        (url.matches('^https://.*') || url.matches('^http://.*'));
+    }
+
+    function isValidEmail(email) {
+      return email is string &&
+        email.size() <= 100 &&
+        email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+    }
+
+    function isValidDateString(dateStr) {
+      return dateStr is string &&
+        dateStr.matches('^\\d{4}-\\d{2}-\\d{2}.*');
+    }
+
+    function isRecent(time) {
+      return time is timestamp &&
+        time > request.time - duration.value(5, 'm') &&
+        time <= request.time;
+    }
+
+    // ===============================================================
+    // Role-Based Access Control (RBAC) Helpers
+    // ===============================================================
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'admin' ||
+        (request.auth.token.email != null && (
+          request.auth.token.email == 'admin@egyptpost.gov.eg' ||
+          request.auth.token.email == 'mohamed.ibrahim@egyptpost.gov.eg'
+        )) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         getUserData().role == 'admin')
+      );
+    }
+
+    function isDispatcher() {
+      return isAuthenticated() && (
+        isAdmin() ||
+        request.auth.token.role == 'dispatcher' ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         getUserData().role == 'dispatcher')
+      );
+    }
+
+    function isDriverForMission(missionData) {
+      return isAuthenticated() && (
+        request.auth.uid == missionData.driverId ||
+        ('driverUserId' in missionData && request.auth.uid == missionData.driverUserId) ||
+        ('driverId' in request.auth.token && request.auth.token.driverId == missionData.driverId) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         'driverId' in getUserData() && getUserData().driverId == missionData.driverId)
+      );
+    }
+
+    // ===============================================================
+    // Domain Validator Functions (Used on BOTH create and update)
+    // ===============================================================
+
+    function isValidWarehouse(data) {
+      return data.keys().hasAll(['name', 'type', 'city', 'address']) &&
+        data.keys().hasOnly([
+          'id', 'name', 'type', 'category', 'city', 'address', 'coordinates',
+          'manager', 'phone', 'isMain', 'plusCode', 'postalCode', 'landmark',
+          'googleMapsUrl', 'createdAt', 'updatedAt'
+        ]) &&
+        data.name is string && data.name.size() >= 2 && data.name.size() <= 150 &&
+        data.type is string && data.type in ['garage', 'main_warehouse', 'regional_warehouse', 'branch_warehouse'] &&
+        data.city is string && data.city.size() >= 2 && data.city.size() <= 100 &&
+        data.address is string && data.address.size() >= 2 && data.address.size() <= 300 &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 64)) &&
+        (!('category' in data) || (data.category is string && data.category.size() <= 100)) &&
+        (!('coordinates' in data) || data.coordinates is latlng || (data.coordinates is list && data.coordinates.size() == 2 && data.coordinates[0] is number && data.coordinates[1] is number)) &&
+        (!('manager' in data) || (data.manager is string && data.manager.size() <= 100)) &&
+        (!('phone' in data) || (data.phone is string && data.phone.size() <= 30)) &&
+        (!('isMain' in data) || data.isMain is bool) &&
+        (!('plusCode' in data) || (data.plusCode is string && data.plusCode.size() <= 30)) &&
+        (!('postalCode' in data) || (data.postalCode is string && data.postalCode.size() <= 20)) &&
+        (!('landmark' in data) || (data.landmark is string && data.landmark.size() <= 200)) &&
+        (!('googleMapsUrl' in data) || (data.googleMapsUrl is string && data.googleMapsUrl.size() <= 500)) &&
+        (!('createdAt' in data) || data.createdAt is timestamp || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    function isValidDriver(data) {
+      return data.keys().hasAll(['name', 'role', 'status']) &&
+        data.keys().hasOnly([
+          'id', 'name', 'role', 'vehicleCategory', 'phone', 'nationalId',
+          'licenseNumber', 'licenseExpiry', 'status', 'rating',
+          'assignedVehicleId', 'totalMissions', 'notes', 'activeMission',
+          'userId', 'createdAt', 'updatedAt'
+        ]) &&
+        data.name is string && data.name.size() >= 2 && data.name.size() <= 100 &&
+        data.role is string && data.role.size() >= 2 && data.role.size() <= 60 &&
+        data.status is string && data.status in ['متاح', 'في مأمورية', 'إجازة', 'اجازة', 'معطل', 'متوقف', 'available', 'on_mission', 'on_leave'] &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 64)) &&
+        (!('vehicleCategory' in data) || (data.vehicleCategory is string && data.vehicleCategory.size() <= 60)) &&
+        (!('phone' in data) || (data.phone is string && data.phone.size() <= 30)) &&
+        (!('nationalId' in data) || (data.nationalId is string && data.nationalId.size() <= 25)) &&
+        (!('licenseNumber' in data) || (data.licenseNumber is string && data.licenseNumber.size() <= 35)) &&
+        (!('licenseExpiry' in data) || (data.licenseExpiry is string && data.licenseExpiry.size() <= 35)) &&
+        (!('rating' in data) || (data.rating is number && data.rating >= 0 && data.rating <= 5)) &&
+        (!('assignedVehicleId' in data) || data.assignedVehicleId == null || (data.assignedVehicleId is string && data.assignedVehicleId.size() <= 64)) &&
+        (!('totalMissions' in data) || (data.totalMissions is number && data.totalMissions >= 0)) &&
+        (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000)) &&
+        (!('activeMission' in data) || data.activeMission == null || data.activeMission is map) &&
+        (!('userId' in data) || (data.userId is string && data.userId.size() <= 64)) &&
+        (!('createdAt' in data) || data.createdAt is timestamp || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    function isValidVehicle(data) {
+      return data.keys().hasAll(['plateNumber', 'type', 'status']) &&
+        data.keys().hasOnly([
+          'id', 'code', 'plateNumber', 'type', 'model', 'year', 'capacity',
+          'status', 'currentLocation', 'odometer', 'fuelType', 'fuelTankCapacity',
+          'licenseExpiry', 'nextMaintenanceKm', 'driverId', 'activeMission',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.plateNumber is string && data.plateNumber.size() >= 1 && data.plateNumber.size() <= 30 &&
+        data.type is string && data.type.size() >= 2 && data.type.size() <= 60 &&
+        data.status is string && data.status in ['متاحة', 'في مأمورية', 'صيانة', 'سائق بإجازة', 'معطلة', 'available', 'on_mission', 'maintenance'] &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 64)) &&
+        (!('code' in data) || (data.code is string && data.code.size() <= 50)) &&
+        (!('model' in data) || (data.model is string && data.model.size() <= 100)) &&
+        (!('year' in data) || data.year == null || (data.year is number && data.year >= 1980 && data.year <= 2050)) &&
+        (!('capacity' in data) || (data.capacity is string && data.capacity.size() <= 50)) &&
+        (!('currentLocation' in data) || (data.currentLocation is string && data.currentLocation.size() <= 150)) &&
+        (!('odometer' in data) || (data.odometer is number && data.odometer >= 0)) &&
+        (!('fuelType' in data) || (data.fuelType is string && data.fuelType.size() <= 30)) &&
+        (!('fuelTankCapacity' in data) || (data.fuelTankCapacity is number && data.fuelTankCapacity >= 0)) &&
+        (!('licenseExpiry' in data) || (data.licenseExpiry is string && data.licenseExpiry.size() <= 35)) &&
+        (!('nextMaintenanceKm' in data) || (data.nextMaintenanceKm is number && data.nextMaintenanceKm >= 0)) &&
+        (!('driverId' in data) || data.driverId == null || (data.driverId is string && data.driverId.size() <= 64)) &&
+        (!('activeMission' in data) || data.activeMission == null || data.activeMission is map) &&
+        (!('createdAt' in data) || data.createdAt is timestamp || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    function isValidMission(data) {
+      return data.keys().hasAll(['driverId', 'vehicleId', 'destinationId', 'status']) &&
+        data.keys().hasOnly([
+          'id', 'missionNumber', 'title', 'driverId', 'driverName', 'driverPhone',
+          'driverUserId',
+          'vehicleId', 'vehicleCode', 'vehiclePlate', 'vehicleType',
+          'originId', 'originName', 'destinationId', 'destinationName',
+          'status', 'occupancyDays', 'schedulePattern', 'scheduleType', 'durationLabel', 'scheduleSteps',
+          'cargoType', 'cargoWeight', 'dispatchOrderNumber',
+          'departureDate', 'expectedArrival', 'expectedReturnDate', 'actualArrival', 'completedDate',
+          'startOdometer', 'endOdometer', 'distanceKm',
+          'cashAdvance', 'fuelExpense', 'fuelLiters', 'fuelPricePerLiter', 'fuelReceiptNumber',
+          'fuelEfficiencyLitersPer100Km', 'kmPerLiter', 'fuelCostPerKm', 'fuelWasteCost',
+          'tollExpense', 'driverAllowance', 'otherExpenses', 'remainingCash',
+          'notes', 'driverNotes', 'createdAt', 'updatedAt'
+        ]) &&
+        data.driverId is string && data.driverId.size() > 0 && data.driverId.size() <= 64 &&
+        data.vehicleId is string && data.vehicleId.size() > 0 && data.vehicleId.size() <= 64 &&
+        data.destinationId is string && data.destinationId.size() > 0 && data.destinationId.size() <= 64 &&
+        data.status is string && data.status in ['draft', 'assigned', 'loading', 'on_road', 'delivered', 'completed', 'cancelled'] &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 64)) &&
+        (!('missionNumber' in data) || (data.missionNumber is string && data.missionNumber.size() <= 50)) &&
+        (!('title' in data) || (data.title is string && data.title.size() <= 200)) &&
+        (!('driverName' in data) || (data.driverName is string && data.driverName.size() <= 100)) &&
+        (!('driverPhone' in data) || (data.driverPhone is string && data.driverPhone.size() <= 30)) &&
+        (!('driverUserId' in data) || (data.driverUserId is string && data.driverUserId.size() <= 64)) &&
+        (!('vehicleCode' in data) || (data.vehicleCode is string && data.vehicleCode.size() <= 50)) &&
+        (!('vehiclePlate' in data) || (data.vehiclePlate is string && data.vehiclePlate.size() <= 30)) &&
+        (!('vehicleType' in data) || (data.vehicleType is string && data.vehicleType.size() <= 60)) &&
+        (!('originId' in data) || (data.originId is string && data.originId.size() <= 64)) &&
+        (!('originName' in data) || (data.originName is string && data.originName.size() <= 150)) &&
+        (!('destinationName' in data) || (data.destinationName is string && data.destinationName.size() <= 150)) &&
+        (!('occupancyDays' in data) || (data.occupancyDays is number && data.occupancyDays >= 0)) &&
+        (!('schedulePattern' in data) || (data.schedulePattern is string && data.schedulePattern.size() <= 100)) &&
+        (!('scheduleType' in data) || (data.scheduleType is string && data.scheduleType.size() <= 50)) &&
+        (!('durationLabel' in data) || (data.durationLabel is string && data.durationLabel.size() <= 100)) &&
+        (!('scheduleSteps' in data) || (data.scheduleSteps is list && data.scheduleSteps.size() <= 20)) &&
+        (!('cargoType' in data) || (data.cargoType is string && data.cargoType.size() <= 150)) &&
+        (!('cargoWeight' in data) || (data.cargoWeight is string && data.cargoWeight.size() <= 50)) &&
+        (!('dispatchOrderNumber' in data) || (data.dispatchOrderNumber is string && data.dispatchOrderNumber.size() <= 50)) &&
+        (!('departureDate' in data) || data.departureDate is timestamp || (data.departureDate is string && data.departureDate.size() <= 50)) &&
+        (!('expectedArrival' in data) || data.expectedArrival is timestamp || (data.expectedArrival is string && data.expectedArrival.size() <= 50)) &&
+        (!('expectedReturnDate' in data) || data.expectedReturnDate is timestamp || (data.expectedReturnDate is string && data.expectedReturnDate.size() <= 50)) &&
+        (!('actualArrival' in data) || data.actualArrival == null || data.actualArrival is timestamp || (data.actualArrival is string && data.actualArrival.size() <= 50)) &&
+        (!('completedDate' in data) || data.completedDate == null || data.completedDate is timestamp || (data.completedDate is string && data.completedDate.size() <= 50)) &&
+        (!('startOdometer' in data) || (data.startOdometer is number && data.startOdometer >= 0)) &&
+        (!('endOdometer' in data) || data.endOdometer == null || (data.endOdometer is number && data.endOdometer >= 0)) &&
+        (!('distanceKm' in data) || (data.distanceKm is number && data.distanceKm >= 0)) &&
+        (!('cashAdvance' in data) || (data.cashAdvance is number && data.cashAdvance >= 0)) &&
+        (!('fuelExpense' in data) || (data.fuelExpense is number && data.fuelExpense >= 0)) &&
+        (!('fuelLiters' in data) || (data.fuelLiters is number && data.fuelLiters >= 0)) &&
+        (!('fuelPricePerLiter' in data) || (data.fuelPricePerLiter is number && data.fuelPricePerLiter >= 0)) &&
+        (!('fuelReceiptNumber' in data) || (data.fuelReceiptNumber is string && data.fuelReceiptNumber.size() <= 50)) &&
+        (!('fuelEfficiencyLitersPer100Km' in data) || data.fuelEfficiencyLitersPer100Km == null || data.fuelEfficiencyLitersPer100Km is number) &&
+        (!('kmPerLiter' in data) || data.kmPerLiter == null || data.kmPerLiter is number) &&
+        (!('fuelCostPerKm' in data) || data.fuelCostPerKm == null || data.fuelCostPerKm is number) &&
+        (!('fuelWasteCost' in data) || data.fuelWasteCost == null || data.fuelWasteCost is number) &&
+        (!('tollExpense' in data) || (data.tollExpense is number && data.tollExpense >= 0)) &&
+        (!('driverAllowance' in data) || (data.driverAllowance is number && data.driverAllowance >= 0)) &&
+        (!('otherExpenses' in data) || (data.otherExpenses is number && data.otherExpenses >= 0)) &&
+        (!('remainingCash' in data) || data.remainingCash is number) &&
+        (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000)) &&
+        (!('driverNotes' in data) || (data.driverNotes is string && data.driverNotes.size() <= 1000)) &&
+        (!('createdAt' in data) || data.createdAt is timestamp || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    function isValidMaintenanceLog(data) {
+      return data.keys().hasAll(['vehicleId', 'type', 'cost', 'workshop']) &&
+        data.keys().hasOnly([
+          'id', 'vehicleId', 'vehiclePlate', 'vehicleCode', 'date', 'type',
+          'cost', 'odometer', 'workshop', 'notes', 'createdAt', 'updatedAt'
+        ]) &&
+        data.vehicleId is string && data.vehicleId.size() > 0 && data.vehicleId.size() <= 64 &&
+        data.type is string && data.type.size() >= 2 && data.type.size() <= 100 &&
+        data.cost is number && data.cost >= 0 &&
+        data.workshop is string && data.workshop.size() >= 2 && data.workshop.size() <= 150 &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 64)) &&
+        (!('vehiclePlate' in data) || (data.vehiclePlate is string && data.vehiclePlate.size() <= 30)) &&
+        (!('vehicleCode' in data) || (data.vehicleCode is string && data.vehicleCode.size() <= 50)) &&
+        (!('date' in data) || data.date is timestamp || (data.date is string && data.date.size() <= 50)) &&
+        (!('odometer' in data) || (data.odometer is number && data.odometer >= 0)) &&
+        (!('notes' in data) || (data.notes is string && data.notes.size() <= 1000)) &&
+        (!('createdAt' in data) || data.createdAt is timestamp || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['name', 'username', 'role']) &&
+        data.keys().hasOnly([
+          'id', 'name', 'username', 'password', 'role', 'roleLabel',
+          'phone', 'department', 'status', 'permissions', 'driverId',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.name is string && data.name.size() >= 2 && data.name.size() <= 100 &&
+        data.username is string && data.username.size() >= 2 && data.username.size() <= 50 &&
+        data.role is string && data.role in ['admin', 'dispatcher', 'warehouse_manager', 'viewer', 'driver'] &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 64)) &&
+        (!('password' in data) || (data.password is string && data.password.size() <= 100)) &&
+        (!('roleLabel' in data) || (data.roleLabel is string && data.roleLabel.size() <= 100)) &&
+        (!('phone' in data) || (data.phone is string && data.phone.size() <= 30)) &&
+        (!('department' in data) || (data.department is string && data.department.size() <= 100)) &&
+        (!('status' in data) || (data.status is string && data.status in ['active', 'inactive', 'suspended'])) &&
+        (!('permissions' in data) || (data.permissions is list && data.permissions.size() <= 50)) &&
+        (!('driverId' in data) || (data.driverId is string && data.driverId.size() <= 64)) &&
+        (!('createdAt' in data) || data.createdAt is timestamp || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    function isValidAuditLog(data) {
+      return data.keys().hasAll(['actionType', 'actionLabel', 'entity', 'userId']) &&
+        data.keys().hasOnly([
+          'id', 'timestamp', 'actionType', 'actionLabel', 'entity', 'entityId',
+          'details', 'userId', 'userName', 'userRole', 'userPhone', 'userDepartment',
+          'createdAt'
+        ]) &&
+        data.actionType is string && data.actionType.size() >= 2 && data.actionType.size() <= 50 &&
+        data.actionLabel is string && data.actionLabel.size() >= 2 && data.actionLabel.size() <= 150 &&
+        data.entity is string && data.entity.size() >= 2 && data.entity.size() <= 50 &&
+        data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 64 &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 64)) &&
+        (!('timestamp' in data) || data.timestamp is timestamp || (data.timestamp is string && data.timestamp.size() <= 50)) &&
+        (!('entityId' in data) || data.entityId == null || (data.entityId is string && data.entityId.size() <= 64)) &&
+        (!('details' in data) || (data.details is string && data.details.size() <= 2000)) &&
+        (!('userName' in data) || (data.userName is string && data.userName.size() <= 100)) &&
+        (!('userRole' in data) || (data.userRole is string && data.userRole.size() <= 50)) &&
+        (!('userPhone' in data) || (data.userPhone is string && data.userPhone.size() <= 30)) &&
+        (!('userDepartment' in data) || (data.userDepartment is string && data.userDepartment.size() <= 100)) &&
+        (!('createdAt' in data) || data.createdAt is timestamp || (data.createdAt is string && data.createdAt.size() <= 50));
+    }
+
+    function isValidSnapshot(data) {
+      return data.keys().hasAll(['data']) &&
+        data.keys().hasOnly(['id', 'filename', 'data', 'stats', 'createdBy', 'createdAt', 'updatedAt']) &&
+        data.data is map &&
+        (!('id' in data) || (data.id is string && data.id.size() <= 64)) &&
+        (!('filename' in data) || (data.filename is string && data.filename.size() <= 150)) &&
+        (!('stats' in data) || data.stats is map) &&
+        (!('createdBy' in data) || (data.createdBy is string && data.createdBy.size() <= 64)) &&
+        (!('createdAt' in data) || data.createdAt is timestamp || (data.createdAt is string && data.createdAt.size() <= 50)) &&
+        (!('updatedAt' in data) || data.updatedAt is timestamp || (data.updatedAt is string && data.updatedAt.size() <= 50));
+    }
+
+    // ===============================================================
+    // Collection Match Rules
+    // ===============================================================
+
+    // Root Default Deny: All operations denied unless explicitly granted
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 1. Warehouses: Authenticated read, admin-only write
+    match /warehouses/{warehouseId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin() && isValidWarehouse(request.resource.data);
+      allow update: if isAdmin() && isValidWarehouse(request.resource.data) && areImmutableFieldsUnchanged(['id']);
+      allow delete: if isAdmin();
+    }
+
+    // 2. Drivers: Authenticated read, admin & dispatcher write
+    match /drivers/{driverId} {
+      allow read: if isAuthenticated();
+      allow create: if (isAdmin() || isDispatcher()) && isValidDriver(request.resource.data);
+      allow update: if (isAdmin() || isDispatcher()) && isValidDriver(request.resource.data) && areImmutableFieldsUnchanged(['id']);
+      allow delete: if (isAdmin() || isDispatcher());
+    }
+
+    // 3. Vehicles: Authenticated read, admin & dispatcher write
+    match /vehicles/{vehicleId} {
+      allow read: if isAuthenticated();
+      allow create: if (isAdmin() || isDispatcher()) && isValidVehicle(request.resource.data);
+      allow update: if (isAdmin() || isDispatcher()) && isValidVehicle(request.resource.data) && areImmutableFieldsUnchanged(['id']);
+      allow delete: if (isAdmin() || isDispatcher());
+    }
+
+    // 4. Missions: Authenticated read, admin & dispatcher write, drivers can update operational mission status
+    match /missions/{missionId} {
+      allow read: if isAuthenticated();
+      allow create: if (isAdmin() || isDispatcher()) && isValidMission(request.resource.data);
+      allow update: if isValidMission(request.resource.data) && (
+        // Case A: Admin or Dispatcher full management
+        ((isAdmin() || isDispatcher()) && areImmutableFieldsUnchanged(['id', 'missionNumber', 'createdAt'])) ||
+        // Case B: Assigned Driver updating their own mission progress
+        (
+          isDriverForMission(resource.data) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status', 'actualArrival', 'completedDate', 'endOdometer', 'notes', 'driverNotes', 'updatedAt'
+          ]) &&
+          areImmutableFieldsUnchanged(['id', 'missionNumber', 'driverId', 'vehicleId', 'originId', 'destinationId', 'cashAdvance', 'createdAt']) &&
+          request.resource.data.status in ['assigned', 'loading', 'on_road', 'delivered', 'completed']
+        )
+      );
+      allow delete: if (isAdmin() || isDispatcher());
+    }
+
+    // 5. Maintenance Logs: Authenticated read, admin-only write
+    match /maintenanceLogs/{logId} {
+      allow read: if isAuthenticated();
+      allow create: if isAdmin() && isValidMaintenanceLog(request.resource.data);
+      allow update: if isAdmin() && isValidMaintenanceLog(request.resource.data) && areImmutableFieldsUnchanged(['id', 'createdAt']);
+      allow delete: if isAdmin();
+    }
+
+    // 6. Users: Admin read/write, user can read their own profile (strictly no self-elevation)
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (isAdmin() || isOwner(userId));
+      allow create: if isAdmin() && isValidUser(request.resource.data);
+      allow update: if isAdmin() && isValidUser(request.resource.data) && areImmutableFieldsUnchanged(['id', 'createdAt']);
+      allow delete: if isAdmin() && userId != 'user-admin-1';
+    }
+
+    // 7. Audit Logs: Strictly Admin read/write, completely tamper-proof (update/delete forbidden)
+    match /auditLogs/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidAuditLog(request.resource.data);
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // 8. Database Snapshots: Strictly Admin read/write
+    match /databaseSnapshots/{snapshotId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() && isValidSnapshot(request.resource.data);
+      allow update: if isAdmin() && isValidSnapshot(request.resource.data) && areImmutableFieldsUnchanged(['id', 'createdAt']);
+      allow delete: if isAdmin();
+    }
+  }
+}

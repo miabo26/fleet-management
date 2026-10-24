@@ -388,6 +388,48 @@
   ],
   "auditLogs": [
     {
+      "id": "log-1792870775107-995",
+      "timestamp": "2026-10-24T19:39:35.107Z",
+      "actionType": "driver_login",
+      "actionLabel": "تسجيل دخول السائق لبوابته الذكية",
+      "entity": "driver",
+      "entityId": "drv-1",
+      "details": "قام السائق (محمد رمضان) بفتح بوابة السائق الذكية على الهاتف المحمول",
+      "userId": "drv-1",
+      "userName": "محمد رمضان",
+      "userRole": "driver",
+      "userPhone": "",
+      "userDepartment": "طاقم سائقي الحركة"
+    },
+    {
+      "id": "log-1792870775071-561",
+      "timestamp": "2026-10-24T19:39:35.071Z",
+      "actionType": "auth_login",
+      "actionLabel": "تسجيل دخول معتمد",
+      "entity": "auth",
+      "entityId": "user-ahmed-1",
+      "details": "قام المستخدم (أحمد - مسؤول حركة وتشغيل) بتسجيل الدخول إلى المنظومة بنجاح",
+      "userId": "user-ahmed-1",
+      "userName": "أحمد",
+      "userRole": "dispatcher",
+      "userPhone": "",
+      "userDepartment": "جراج السيارات المركزي - شبرا"
+    },
+    {
+      "id": "log-1792870775023-423",
+      "timestamp": "2026-10-24T19:39:35.023Z",
+      "actionType": "auth_login",
+      "actionLabel": "تسجيل دخول معتمد",
+      "entity": "auth",
+      "entityId": "user-admin-1",
+      "details": "قام المستخدم (م/ محمد ابراهيم ابوالمعاطى - مدير عام المنظومة (تحكم كامل)) بتسجيل الدخول إلى المنظومة بنجاح",
+      "userId": "user-admin-1",
+      "userName": "م/ محمد ابراهيم ابوالمعاطى",
+      "userRole": "admin",
+      "userPhone": "01159700466",
+      "userDepartment": "إدارة الدعم والمتابعة - البريد المصري"
+    },
+    {
       "id": "log-1792869448073-860",
       "timestamp": "2026-10-24T19:17:28.073Z",
       "actionType": "auth_login",
