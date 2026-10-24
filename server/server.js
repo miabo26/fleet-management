@@ -3,7 +3,18 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { readDb, writeDb, syncFleetStatus, getDestinationScheduleRule, initialData, recordAuditLog } = require('./db');
+const { 
+  readDb, 
+  writeDb, 
+  syncFleetStatus, 
+  getDestinationScheduleRule, 
+  initialData, 
+  recordAuditLog,
+  saveSnapshot,
+  listAvailableBackups,
+  restoreFromData,
+  getDatabaseStats
+} = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -877,8 +888,95 @@ app.post('/api/maintenance', (req, res) => {
   res.status(201).json({ message: 'تم تسجيل الصيانة بنجاح', log });
 });
 
-// RESET TO INITIAL SEED
+// ---------- BACKUP & DISASTER RECOVERY ---------- //
+
+// 1. Download full system backup (.json)
+app.get('/api/backup/download', (req, res) => {
+  const user = getActorUser(req);
+  if (user.role !== 'admin') {
+    return res.status(403).json({ error: 'صلاحية تصدير النسخة الاحتياطية قاصرة على مدير عام المنظومة فقط' });
+  }
+
+  const db = readDb();
+  const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  const filename = `fleet_backup_${dateStr}.json`;
+
+  recordAuditLog(db, {
+    actionType: 'backup_export',
+    actionLabel: 'تصدير وتحميل نسخة احتياطية كاملة للمنظومة',
+    entity: 'backup',
+    entityId: filename,
+    details: `قام ${user.name} بتحميل نسخة احتياطية كاملة لقاعدة بيانات المنظومة تشمل ${db.missions?.length || 0} مأمورية و ${db.vehicles?.length || 0} شاحنة و ${db.drivers?.length || 0} سائق`,
+    user
+  });
+  writeDb(db);
+
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send(JSON.stringify(db, null, 2));
+});
+
+// 2. Restore system from backup
+app.post('/api/backup/restore', (req, res) => {
+  const user = getActorUser(req);
+  if (user.role !== 'admin') {
+    return res.status(403).json({ error: 'صلاحية استعادة النسخة الاحتياطية قاصرة على مدير عام المنظومة فقط' });
+  }
+
+  try {
+    const backupData = req.body;
+    const restored = restoreFromData(backupData);
+
+    recordAuditLog(restored, {
+      actionType: 'backup_restore',
+      actionLabel: 'استعادة ناجحة لنسخة احتياطية لقاعدة البيانات',
+      entity: 'backup',
+      entityId: 'restore',
+      details: `قام ${user.name} باستعادة نسخة احتياطية لقاعدة البيانات بنجاح`,
+      user
+    });
+    writeDb(restored);
+
+    res.json({ message: 'تم استعادة النسخة الاحتياطية بنجاح وتحديث كافة السجلات', stats: getDatabaseStats() });
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'فشلت عملية استعادة النسخة الاحتياطية' });
+  }
+});
+
+// 3. Get database health and backup stats
+app.get('/api/backup/stats', (req, res) => {
+  res.json(getDatabaseStats());
+});
+
+// 4. Manually trigger a server-side snapshot
+app.post('/api/backup/snapshot', (req, res) => {
+  const user = getActorUser(req);
+  if (user.role !== 'admin') {
+    return res.status(403).json({ error: 'صلاحية إنشاء لقطة احتياطية قاصرة على المدير فقط' });
+  }
+
+  const db = readDb();
+  const filename = saveSnapshot(db, 'manual');
+
+  recordAuditLog(db, {
+    actionType: 'backup_snapshot',
+    actionLabel: 'إنشاء لقطة احتياطية يدوية على الخادم',
+    entity: 'backup',
+    entityId: filename,
+    details: `قام ${user.name} بإنشاء لقطة احتياطية يدوية لقاعدة البيانات على الخادم: ${filename}`,
+    user
+  });
+  writeDb(db);
+
+  res.json({ message: 'تم إنشاء لقطة احتياطية فورية على الخادم بنجاح', filename, stats: getDatabaseStats() });
+});
+
+// RESET TO INITIAL SEED (Protected)
 app.post('/api/reset', (req, res) => {
+  const user = getActorUser(req);
+  if (user.role !== 'admin') {
+    return res.status(403).json({ error: 'غير مصرح بإعادة ضبط البيانات' });
+  }
   writeDb(initialData);
   res.json({ message: 'تمت استعادة البيانات الافتراضية بنجاح' });
 });

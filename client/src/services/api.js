@@ -274,3 +274,51 @@ export async function resetDatabase() {
   if (!res.ok) throw new Error('فشل استعادة البيانات');
   return res.json();
 }
+
+// Backup & Disaster Recovery APIs
+export async function fetchBackupStats() {
+  const res = await fetch(`${API_BASE}/backup/stats`, {
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) throw new Error('فشل جلب إحصائيات النسخ الاحتياطي');
+  return res.json();
+}
+
+export async function createManualSnapshot() {
+  const res = await fetch(`${API_BASE}/backup/snapshot`, {
+    method: 'POST',
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) throw new Error('فشل إنشاء لقطة احتياطية');
+  return res.json();
+}
+
+export async function restoreBackupData(backupData) {
+  const res = await fetch(`${API_BASE}/backup/restore`, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: JSON.stringify(backupData)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'فشلت عملية استعادة النسخة الاحتياطية');
+  }
+  return res.json();
+}
+
+export async function downloadBackupFile() {
+  const res = await fetch(`${API_BASE}/backup/download`, {
+    headers: getAuthHeaders()
+  });
+  if (!res.ok) throw new Error('فشل تحميل ملف النسخة الاحتياطية');
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const dateStr = new Date().toISOString().slice(0, 10);
+  a.download = `fleet_backup_${dateStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}

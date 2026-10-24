@@ -2,11 +2,57 @@ const fs = require('fs');
 const path = require('path');
 
 const DB_FILE = path.join(__dirname, 'data', 'fleet_database.json');
+const BACKUP_FILE = path.join(__dirname, 'data', 'fleet_database.backup.json');
+const BACKUPS_DIR = path.join(__dirname, 'data', 'backups');
 
-// Ensure data directory exists
+// Ensure data and backups directory exist
 const dataDir = path.join(__dirname, 'data');
 if (!fs.existsSync(dataDir)) {
   fs.mkdirSync(dataDir, { recursive: true });
+}
+if (!fs.existsSync(BACKUPS_DIR)) {
+  fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+}
+
+// Optional Cloud Database Sync (MongoDB Atlas)
+let mongoDbCollection = null;
+let isMongoConnected = false;
+
+async function initMongo() {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) return;
+
+  try {
+    const { MongoClient } = require('mongodb');
+    const client = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 });
+    await client.connect();
+    const db = client.db('egypt_post_fleet');
+    mongoDbCollection = db.collection('database_snapshots');
+    isMongoConnected = true;
+    console.log('✅ Connected to MongoDB Atlas Cloud Database successfully!');
+
+    // Fetch cloud data and sync to local if newer or present
+    const cloudDoc = await mongoDbCollection.findOne({ _id: 'fleet_main_data' });
+    if (cloudDoc && cloudDoc.data) {
+      console.log('🔄 Synced fleet data from MongoDB Atlas cloud database.');
+      writeDbLocal(cloudDoc.data, false);
+    } else {
+      const local = readDb();
+      await mongoDbCollection.updateOne(
+        { _id: 'fleet_main_data' },
+        { $set: { data: local, updatedAt: new Date() } },
+        { upsert: true }
+      );
+      console.log('☁️ Initialized MongoDB Atlas cloud database from current fleet records.');
+    }
+  } catch (err) {
+    console.error('⚠️ Could not connect to MongoDB Atlas (falling back to local file storage):', err.message);
+    isMongoConnected = false;
+  }
+}
+
+if (process.env.MONGODB_URI) {
+  initMongo();
 }
 
 // Initial seed data based exactly on User Specifications
@@ -385,15 +431,165 @@ function readDb() {
   }
 }
 
-// Function to write DB
-function writeDb(data) {
+// Save a named timestamped snapshot backup
+function saveSnapshot(data, prefix = 'snapshot') {
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf-8');
+    const dateStr = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const filename = `fleet_${prefix}_${dateStr}.json`;
+    const filepath = path.join(BACKUPS_DIR, filename);
+    fs.writeFileSync(filepath, JSON.stringify(data, null, 2), 'utf-8');
+
+    // Keep last 30 snapshots automatically
+    const files = fs.readdirSync(BACKUPS_DIR)
+      .filter(f => f.startsWith('fleet_') && f.endsWith('.json'))
+      .sort()
+      .reverse();
+
+    if (files.length > 30) {
+      files.slice(30).forEach(oldFile => {
+        try {
+          fs.unlinkSync(path.join(BACKUPS_DIR, oldFile));
+        } catch (e) {}
+      });
+    }
+
+    return filename;
+  } catch (err) {
+    console.error('Error creating snapshot backup:', err);
+    return null;
+  }
+}
+
+let lastSnapshotTime = 0;
+
+// Internal Atomic Write with Backup Mirror & Snapshot
+function writeDbLocal(data, syncToCloud = true) {
+  try {
+    const content = JSON.stringify(data, null, 2);
+
+    // 1. Mirror previous backup file if existing DB exists
+    if (fs.existsSync(DB_FILE)) {
+      try {
+        fs.copyFileSync(DB_FILE, BACKUP_FILE);
+      } catch (e) {}
+    }
+
+    // 2. Safe Atomic Write: write to .tmp then rename
+    const tmpFile = DB_FILE + '.tmp';
+    fs.writeFileSync(tmpFile, content, 'utf-8');
+    fs.renameSync(tmpFile, DB_FILE);
+
+    // 3. Periodic rotating snapshot every 30 minutes of active changes
+    const now = Date.now();
+    if (now - lastSnapshotTime > 30 * 60 * 1000) {
+      lastSnapshotTime = now;
+      saveSnapshot(data, 'auto');
+    }
+
+    // 4. Sync to MongoDB Atlas Cloud if connected
+    if (syncToCloud && isMongoConnected && mongoDbCollection) {
+      mongoDbCollection.updateOne(
+        { _id: 'fleet_main_data' },
+        { $set: { data, updatedAt: new Date() } },
+        { upsert: true }
+      ).catch(err => {
+        console.error('Error syncing to MongoDB Atlas:', err.message);
+      });
+    }
+
     return true;
   } catch (err) {
     console.error("Error writing database:", err);
     return false;
   }
+}
+
+// Function to write DB
+function writeDb(data) {
+  return writeDbLocal(data, true);
+}
+
+// List available server snapshots
+function listAvailableBackups() {
+  try {
+    if (!fs.existsSync(BACKUPS_DIR)) return [];
+    return fs.readdirSync(BACKUPS_DIR)
+      .filter(f => f.endsWith('.json'))
+      .map(filename => {
+        const filepath = path.join(BACKUPS_DIR, filename);
+        const stats = fs.statSync(filepath);
+        return {
+          filename,
+          sizeKb: (stats.size / 1024).toFixed(1),
+          createdAt: stats.mtime.toISOString(),
+          timeAgo: Math.round((Date.now() - stats.mtimeMs) / 60000)
+        };
+      })
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  } catch (err) {
+    return [];
+  }
+}
+
+// Restore whole database safely from backup data
+function restoreFromData(newDbData) {
+  if (!newDbData || typeof newDbData !== 'object') {
+    throw new Error('بيانات النسخة الاحتياطية غير صالحة');
+  }
+
+  // Pre-restore backup snapshot
+  const current = readDb();
+  saveSnapshot(current, 'pre_restore');
+
+  const valid = {
+    ...current,
+    ...newDbData,
+    warehouses: Array.isArray(newDbData.warehouses) ? newDbData.warehouses : current.warehouses,
+    drivers: Array.isArray(newDbData.drivers) ? newDbData.drivers : current.drivers,
+    vehicles: Array.isArray(newDbData.vehicles) ? newDbData.vehicles : current.vehicles,
+    missions: Array.isArray(newDbData.missions) ? newDbData.missions : current.missions,
+    maintenanceLogs: Array.isArray(newDbData.maintenanceLogs) ? newDbData.maintenanceLogs : current.maintenanceLogs,
+    users: Array.isArray(newDbData.users) && newDbData.users.length > 0 ? newDbData.users : current.users,
+    auditLogs: Array.isArray(newDbData.auditLogs) ? newDbData.auditLogs : current.auditLogs,
+  };
+
+  writeDb(valid);
+  return valid;
+}
+
+// Database stats & security info
+function getDatabaseStats() {
+  const db = readDb();
+  let fileSize = 0;
+  let lastModified = new Date().toISOString();
+
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      const stats = fs.statSync(DB_FILE);
+      fileSize = stats.size;
+      lastModified = stats.mtime.toISOString();
+    }
+  } catch (e) {}
+
+  const backups = listAvailableBackups();
+
+  return {
+    isCloudConnected: isMongoConnected,
+    storageType: isMongoConnected ? 'قاعدة بيانات سحابية متزامنة (MongoDB Atlas) ☁️' : 'تخزين آمن محلي مع لقطات نسخ احتياطي دورية 💾',
+    fileSizeKb: (fileSize / 1024).toFixed(1),
+    lastModified,
+    totalRecords: {
+      missions: db.missions?.length || 0,
+      drivers: db.drivers?.length || 0,
+      vehicles: db.vehicles?.length || 0,
+      warehouses: db.warehouses?.length || 0,
+      maintenanceLogs: db.maintenanceLogs?.length || 0,
+      users: db.users?.length || 0,
+      auditLogs: db.auditLogs?.length || 0
+    },
+    backupsCount: backups.length,
+    latestBackups: backups.slice(0, 5)
+  };
 }
 
 // Initial Audit Trail Seeds
@@ -634,5 +830,9 @@ module.exports = {
   initialData,
   initialUsers,
   initialAuditLogs,
-  recordAuditLog
+  recordAuditLog,
+  saveSnapshot,
+  listAvailableBackups,
+  restoreFromData,
+  getDatabaseStats
 };

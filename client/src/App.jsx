@@ -425,6 +425,7 @@ export default function App() {
             onAddUser={handleAddUser}
             onUpdateUser={handleUpdateUser}
             onDeleteUser={handleDeleteUser}
+            onRefresh={loadData}
           />
         )}
 

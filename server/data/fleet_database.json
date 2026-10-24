@@ -369,6 +369,20 @@
   ],
   "auditLogs": [
     {
+      "id": "log-1792867978561-650",
+      "timestamp": "2026-10-24T18:52:58.561Z",
+      "actionType": "backup_snapshot",
+      "actionLabel": "إنشاء لقطة احتياطية يدوية على الخادم",
+      "entity": "backup",
+      "entityId": "fleet_manual_2026-10-24T18-52-58.json",
+      "details": "قام م/ محمد ابراهيم ابوالمعاطى بإنشاء لقطة احتياطية يدوية لقاعدة البيانات على الخادم: fleet_manual_2026-10-24T18-52-58.json",
+      "userId": "user-admin-1",
+      "userName": "م/ محمد ابراهيم ابوالمعاطى",
+      "userRole": "admin",
+      "userPhone": "01159700466",
+      "userDepartment": "إدارة الدعم والمتابعة - البريد المصري"
+    },
+    {
       "id": "log-seed-1",
       "timestamp": "2026-10-24T14:07:24.363Z",
       "actionType": "auth_login",
