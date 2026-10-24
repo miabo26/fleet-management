@@ -9,7 +9,13 @@
   body {
     font-family: 'Cairo', sans-serif;
     transition: background-color 0.2s ease, color 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
   }
+}
+
+/* Touch momentum scrolling for mobile devices */
+.overflow-x-auto, .overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Day Mode (Light) vs Night Mode (Dark) System-Wide Styling */

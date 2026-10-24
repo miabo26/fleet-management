@@ -335,7 +335,7 @@ export default function App() {
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-24 md:pb-12">
         {activeTab === 'dashboard' && (
           <Dashboard
             data={data}
@@ -438,7 +438,7 @@ export default function App() {
       </main>
 
       {/* Sleek, Clean, Official Footer */}
-      <footer className="no-print bg-slate-900 text-white border-t border-slate-800 py-6 mt-auto">
+      <footer className="no-print bg-slate-900 text-white border-t border-slate-800 py-6 mb-16 md:mb-0 mt-auto">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
             

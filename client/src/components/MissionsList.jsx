@@ -15,7 +15,9 @@ import {
   Clock, 
   Navigation,
   Fuel,
-  ArrowUpDown
+  ArrowUpDown,
+  Phone,
+  DollarSign
 } from 'lucide-react';
 
 export default function MissionsList({ 
@@ -68,16 +70,16 @@ export default function MissionsList({
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 sm:space-y-6 pb-12">
       {/* Header with Title and Create Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold shrink-0">
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-xl font-black text-slate-900 m-0">سجل وتوزيع المأموريات اللوجستية</h2>
+              <h2 className="text-lg sm:text-xl font-black text-slate-900 m-0">سجل وتوزيع المأموريات اللوجستية</h2>
               <p className="text-xs text-slate-500 mt-0.5">
                 جدولة ومتابعة رحلات الشاحنات من المخزن الرئيسي إلى المخازن الإقليمية
               </p>
@@ -87,7 +89,7 @@ export default function MissionsList({
 
         <button
           onClick={onOpenNewMission}
-          className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2.5 rounded-xl shadow-md shadow-blue-600/20 transition-all cursor-pointer text-sm"
+          className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 sm:px-5 py-2.5 rounded-xl shadow-md shadow-blue-600/20 transition-all cursor-pointer text-xs sm:text-sm"
         >
           <Plus className="w-4 h-4" />
           <span>إسناد مأمورية جديدة</span>
@@ -95,64 +97,103 @@ export default function MissionsList({
       </div>
 
       {/* Filters and Search Bar */}
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+      <div className="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 space-y-3 sm:space-y-4">
         <div className="flex flex-col md:flex-row md:items-center gap-3">
           {/* Search Input */}
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
+              placeholder="بحث برقم المأمورية، السائق، رقم السيارة، إذن الصرف..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="ابحث برقم المأمورية، السائق، رقم اللوحة، إذن الصرف..."
-              className="w-full pr-10 pl-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             />
           </div>
 
-          {/* Destination Dropdown */}
-          <div className="flex items-center gap-2">
-            <select
-              value={destinationFilter}
-              onChange={(e) => setDestinationFilter(e.target.value)}
-              className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            >
-              <option value="all">كل الوجهات الإقليمية</option>
-              <option value="loc-gharbia-qarshiya">مخزن الغربية (القرشية)</option>
-              <option value="loc-minya-mustaqbal">مخزن المنيا الجديدة (المستقبل)</option>
-              <option value="loc-sohag-kawthar">مخزن سوهاج (الكوثر)</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Status Filter Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none text-xs">
-          {[
-            { id: 'all', label: 'الكل' },
-            { id: 'active', label: 'النشطة حالياً' },
-            { id: 'loading', label: 'جار التحميل' },
-            { id: 'on_road', label: 'على الطريق' },
-            { id: 'delivered', label: 'تم التسليم' },
-            { id: 'completed', label: 'المكتملة' },
-          ].map(tab => (
+          {/* Quick Filters */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
             <button
-              key={tab.id}
-              onClick={() => setStatusFilter(tab.id)}
-              className={`px-3 py-1.5 rounded-lg font-bold transition-colors cursor-pointer ${
-                statusFilter === tab.id
+              onClick={() => setStatusFilter('all')}
+              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                statusFilter === 'all'
                   ? 'bg-slate-900 text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              {tab.label}
+              الكل ({missions.length})
             </button>
-          ))}
-          <span className="text-slate-400 mr-auto text-[11px]">
+            <button
+              onClick={() => setStatusFilter('active')}
+              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                statusFilter === 'active'
+                  ? 'bg-amber-600 text-white'
+                  : 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200'
+              }`}
+            >
+              نشطة حالياً ({missions.filter(m => ['assigned', 'loading', 'on_road'].includes(m.status)).length})
+            </button>
+            <button
+              onClick={() => setStatusFilter('completed')}
+              className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                statusFilter === 'completed'
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'
+              }`}
+            >
+              مكتملة ({missions.filter(m => m.status === 'completed').length})
+            </button>
+          </div>
+        </div>
+
+        {/* Second Row: Destination Filter */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+            <span className="text-slate-500 font-bold flex items-center gap-1 shrink-0">
+              <Filter className="w-3.5 h-3.5 text-slate-400" />
+              تصفية بالوجهة:
+            </span>
+            <button
+              onClick={() => setDestinationFilter('all')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition-colors cursor-pointer whitespace-nowrap ${
+                destinationFilter === 'all' ? 'bg-blue-100 text-blue-700' : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              جميع المخازن
+            </button>
+            <button
+              onClick={() => setDestinationFilter('loc-gharbia-qarshiya')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition-colors cursor-pointer whitespace-nowrap ${
+                destinationFilter === 'loc-gharbia-qarshiya' ? 'bg-emerald-100 text-emerald-700 font-black' : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              القرشية (الغربية)
+            </button>
+            <button
+              onClick={() => setDestinationFilter('loc-minya-mustaqbal')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition-colors cursor-pointer whitespace-nowrap ${
+                destinationFilter === 'loc-minya-mustaqbal' ? 'bg-amber-100 text-amber-700 font-black' : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              المنيا الجديدة
+            </button>
+            <button
+              onClick={() => setDestinationFilter('loc-sohag-kawthar')}
+              className={`px-2.5 py-1 rounded-lg font-bold transition-colors cursor-pointer whitespace-nowrap ${
+                destinationFilter === 'loc-sohag-kawthar' ? 'bg-purple-100 text-purple-700 font-black' : 'text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              سوهاج (الكوثر)
+            </button>
+          </div>
+
+          <span className="text-slate-400 font-medium">
             عرض {filteredMissions.length} من أصل {missions.length} مأمورية
           </span>
         </div>
       </div>
 
-      {/* Missions Table / Card List */}
+      {/* Missions Container */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         {filteredMissions.length === 0 ? (
           <div className="text-center py-16 px-4">
@@ -165,140 +206,247 @@ export default function MissionsList({
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-right text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold">
-                <tr>
-                  <th className="py-3.5 px-4">المأمورية</th>
-                  <th className="py-3.5 px-4">مسار الرحلة</th>
-                  <th className="py-3.5 px-4">السائق والشاحنة</th>
-                  <th className="py-3.5 px-4">الحمولة وإذن الصرف</th>
-                  <th className="py-3.5 px-4">التاريخ والموعد</th>
-                  <th className="py-3.5 px-4">الماليات والعهدة</th>
-                  <th className="py-3.5 px-4">الحالة</th>
-                  <th className="py-3.5 px-4 text-center">الإجراءات</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredMissions.map((mission) => (
-                  <tr key={mission.id} className="hover:bg-slate-50/80 transition-colors">
-                    
-                    {/* Mission ID & Title */}
-                    <td className="py-4 px-4 font-bold">
-                      <div className="font-mono text-xs font-black text-slate-900">
+          <>
+            {/* MOBILE VIEW: Touch-Friendly Responsive Cards (hidden on md+) */}
+            <div className="block md:hidden divide-y divide-slate-100">
+              {filteredMissions.map((mission) => (
+                <div key={mission.id} className="p-4 space-y-3 hover:bg-slate-50/80 transition-colors">
+                  
+                  {/* Card Header: Code + Badges */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-mono text-xs font-black bg-slate-900 text-white px-2.5 py-1 rounded-md">
                         {mission.missionNumber}
-                      </div>
-                      <div className="text-[11px] text-slate-600 mt-0.5 line-clamp-1 max-w-[180px]">
-                        {mission.title}
-                      </div>
-                    </td>
+                      </span>
+                      {getStatusBadge(mission.status)}
+                    </div>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${
+                      mission.occupancyDays === 3 
+                        ? 'bg-purple-50 text-purple-700 border-purple-200' 
+                        : mission.occupancyDays === 2 
+                        ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                        : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    }`}>
+                      {mission.occupancyDays === 3 ? '🟣 3 أيام' : mission.occupancyDays === 2 ? '🟡 يومان' : '🟢 نفس اليوم'}
+                    </span>
+                  </div>
 
-                    {/* Route */}
-                    <td className="py-4 px-4">
-                      <div className="flex flex-col gap-1 text-[11px]">
-                        <span className="text-blue-700 font-semibold flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-blue-500" />
-                          {mission.originName}
-                        </span>
-                        <span className="text-emerald-700 font-semibold flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-emerald-500" />
-                          {mission.destinationName}
-                        </span>
-                      </div>
-                    </td>
+                  {/* Title */}
+                  <h4 className="text-xs font-bold text-slate-900 leading-snug m-0">
+                    {mission.title}
+                  </h4>
 
-                    {/* Driver & Vehicle */}
-                    <td className="py-4 px-4">
-                      <div className="space-y-1">
-                        <div className="font-bold text-slate-900 flex items-center gap-1">
-                          <User className="w-3 h-3 text-indigo-500" />
-                          <span>{mission.driverName}</span>
+                  {/* Route & Destination */}
+                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500 font-medium">خط السير:</span>
+                      <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-700">
+                        <span>{mission.originName}</span>
+                        <span>➔</span>
+                        <span>{mission.destinationName}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500 font-medium">السائق والشاحنة:</span>
+                      <div className="text-right text-[11px]">
+                        <span className="font-bold text-slate-900 block">{mission.driverName}</span>
+                        <span className="text-slate-500 font-mono text-[10px]">{mission.vehicleCode} - {mission.vehiclePlate}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500 font-medium">الحمولة:</span>
+                      <span className="font-semibold text-slate-800 text-[11px]">{mission.cargoType}</span>
+                    </div>
+
+                    {mission.dispatchOrderNumber && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-slate-500 font-medium">إذن الصرف:</span>
+                        <span className="font-mono text-slate-600 text-[10px]">{mission.dispatchOrderNumber}</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 font-mono text-[11px]">
+                      <span className="text-slate-600 font-sans font-bold">العهدة / المتبقي:</span>
+                      <span className="text-slate-900 font-bold">
+                        {mission.cashAdvance} ج.م / <span className={mission.remainingCash >= 0 ? 'text-emerald-600' : 'text-rose-600'}>{mission.remainingCash} ج.م</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Mobile Action Buttons */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      onClick={() => onViewMission(mission)}
+                      className="flex-1 py-2 px-3 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>التفاصيل والتسوية</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => onPrintMission(mission)}
+                      className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                      title="طباعة إذن التشغيل"
+                    >
+                      <Printer className="w-3.5 h-3.5" />
+                      <span>طباعة</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`هل أنت متأكد من حذف المأمورية ${mission.missionNumber}؟`)) {
+                          onDeleteMission(mission.id);
+                        }
+                      }}
+                      className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 cursor-pointer transition-colors"
+                      title="حذف المأمورية"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                </div>
+              ))}
+            </div>
+
+            {/* DESKTOP VIEW: Full Data Table (hidden on mobile, visible on md+) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-right text-xs">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold">
+                  <tr>
+                    <th className="py-3.5 px-4">المأمورية</th>
+                    <th className="py-3.5 px-4">مسار الرحلة</th>
+                    <th className="py-3.5 px-4">السائق والشاحنة</th>
+                    <th className="py-3.5 px-4">الحمولة وإذن الصرف</th>
+                    <th className="py-3.5 px-4">التاريخ والموعد</th>
+                    <th className="py-3.5 px-4">الماليات والعهدة</th>
+                    <th className="py-3.5 px-4">الحالة</th>
+                    <th className="py-3.5 px-4 text-center">الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredMissions.map((mission) => (
+                    <tr key={mission.id} className="hover:bg-slate-50/80 transition-colors">
+                      
+                      {/* Mission ID & Title */}
+                      <td className="py-4 px-4 font-bold">
+                        <div className="font-mono text-xs font-black text-slate-900">
+                          {mission.missionNumber}
                         </div>
-                        <div className="text-slate-500 flex items-center gap-1 text-[11px]">
-                          <Truck className="w-3 h-3 text-blue-500" />
-                          <span>{mission.vehicleCode} - {mission.vehiclePlate}</span>
+                        <div className="text-[11px] text-slate-600 mt-0.5 line-clamp-1 max-w-[180px]">
+                          {mission.title}
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Cargo & Dispatch Order */}
-                    <td className="py-4 px-4">
-                      <div className="text-[11px]">
-                        <div className="font-semibold text-slate-800">{mission.cargoType}</div>
-                        <div className="text-slate-400">{mission.dispatchOrderNumber}</div>
-                        <div className="mt-1 flex items-center gap-1">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
-                            mission.occupancyDays === 3 
-                              ? 'bg-purple-50 text-purple-700 border-purple-200' 
-                              : mission.occupancyDays === 2 
-                              ? 'bg-amber-50 text-amber-700 border-amber-200' 
-                              : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          }`}>
-                            {mission.occupancyDays === 3 ? '🟣 إشغال 3 أيام' : mission.occupancyDays === 2 ? '🟡 إشغال يومين' : '🟢 إشغال نفس اليوم'}
+                      {/* Route */}
+                      <td className="py-4 px-4">
+                        <div className="flex flex-col gap-1 text-[11px]">
+                          <span className="text-blue-700 font-semibold flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-blue-500" />
+                            {mission.originName}
+                          </span>
+                          <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-emerald-500" />
+                            {mission.destinationName}
                           </span>
                         </div>
-                      </div>
-                    </td>
+                      </td>
 
-                    {/* Dates & Return Schedule */}
-                    <td className="py-4 px-4 text-slate-600 text-[11px]">
-                      <div>انطلاق: <strong>{mission.departureDate ? new Date(mission.departureDate).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '---'}</strong></div>
-                      <div className="text-blue-700">عودة متوقعة: <strong>{mission.expectedReturnDate ? new Date(mission.expectedReturnDate).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : (mission.expectedArrival ? new Date(mission.expectedArrival).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' }) : '---')}</strong></div>
-                      <div className="text-[10px] text-slate-400 font-semibold">{mission.schedulePattern || 'ذهاب وعودة'}</div>
-                    </td>
+                      {/* Driver & Vehicle */}
+                      <td className="py-4 px-4">
+                        <div className="space-y-1">
+                          <div className="font-bold text-slate-900 flex items-center gap-1">
+                            <User className="w-3 h-3 text-indigo-500" />
+                            <span>{mission.driverName}</span>
+                          </div>
+                          <div className="text-slate-500 flex items-center gap-1 text-[11px]">
+                            <Truck className="w-3 h-3 text-blue-500" />
+                            <span>{mission.vehicleCode} - {mission.vehiclePlate}</span>
+                          </div>
+                        </div>
+                      </td>
 
-                    {/* Financials */}
-                    <td className="py-4 px-4 font-mono text-[11px]">
-                      <div>عهدة: <strong className="text-slate-900">{mission.cashAdvance} ج.م</strong></div>
-                      <div className="text-slate-500 text-[10px]">
-                        سولار: {mission.fuelExpense || 0} | كارتات: {mission.tollExpense || 0}
-                      </div>
-                      <div className={`text-[10px] font-bold ${mission.remainingCash >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        متبقي: {mission.remainingCash} ج.م
-                      </div>
-                    </td>
+                      {/* Cargo & Dispatch Order */}
+                      <td className="py-4 px-4">
+                        <div className="text-[11px]">
+                          <div className="font-semibold text-slate-800">{mission.cargoType}</div>
+                          <div className="text-slate-400">{mission.dispatchOrderNumber}</div>
+                          <div className="mt-1 flex items-center gap-1">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                              mission.occupancyDays === 3 
+                                ? 'bg-purple-50 text-purple-700 border-purple-200' 
+                                : mission.occupancyDays === 2 
+                                ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            }`}>
+                              {mission.occupancyDays === 3 ? '🟣 إشغال 3 أيام' : mission.occupancyDays === 2 ? '🟡 إشغال يومين' : '🟢 إشغال نفس اليوم'}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
 
-                    {/* Status */}
-                    <td className="py-4 px-4">
-                      {getStatusBadge(mission.status)}
-                    </td>
+                      {/* Dates & Return Schedule */}
+                      <td className="py-4 px-4 text-slate-600 text-[11px]">
+                        <div>انطلاق: <strong>{mission.departureDate ? new Date(mission.departureDate).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '---'}</strong></div>
+                        <div className="text-blue-700">عودة متوقعة: <strong>{mission.expectedReturnDate ? new Date(mission.expectedReturnDate).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : (mission.expectedArrival ? new Date(mission.expectedArrival).toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' }) : '---')}</strong></div>
+                        <div className="text-[10px] text-slate-400 font-semibold">{mission.schedulePattern || 'ذهاب وعودة'}</div>
+                      </td>
 
-                    {/* Actions */}
-                    <td className="py-4 px-4">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <button
-                          onClick={() => onViewMission(mission)}
-                          title="عرض وتعديل التفاصيل والتسوية"
-                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-600 transition-colors cursor-pointer"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => onPrintMission(mission)}
-                          title="طباعة إذن تشغيل المأمورية"
-                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer"
-                        >
-                          <Printer className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (window.confirm(`هل أنت متأكد من حذف المأمورية ${mission.missionNumber}؟`)) {
-                              onDeleteMission(mission.id);
-                            }
-                          }}
-                          title="حذف المأمورية"
-                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-400 transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
+                      {/* Financials */}
+                      <td className="py-4 px-4 font-mono text-[11px]">
+                        <div>عهدة: <strong className="text-slate-900">{mission.cashAdvance} ج.م</strong></div>
+                        <div className="text-slate-500 text-[10px]">
+                          سولار: {mission.fuelExpense || 0} | كارتات: {mission.tollExpense || 0}
+                        </div>
+                        <div className={`text-[10px] font-bold ${mission.remainingCash >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          متبقي: {mission.remainingCash} ج.م
+                        </div>
+                      </td>
 
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      {/* Status */}
+                      <td className="py-4 px-4">
+                        {getStatusBadge(mission.status)}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-4 px-4">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => onViewMission(mission)}
+                            title="عرض وتعديل التفاصيل والتسوية"
+                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-600 transition-colors cursor-pointer"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => onPrintMission(mission)}
+                            title="طباعة إذن تشغيل المأمورية"
+                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer"
+                          >
+                            <Printer className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`هل أنت متأكد من حذف المأمورية ${mission.missionNumber}؟`)) {
+                                onDeleteMission(mission.id);
+                              }
+                            }}
+                            title="حذف المأمورية"
+                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-400 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

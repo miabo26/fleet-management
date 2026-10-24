@@ -308,7 +308,7 @@ const initialData = {
       id: "user-admin-1",
       name: "م/ محمد ابراهيم ابوالمعاطى",
       username: "admin",
-      password: "admin2026",
+      password: "15987",
       role: "admin",
       roleLabel: "مدير عام المنظومة (تحكم كامل)",
       phone: "01159700466",

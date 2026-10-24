@@ -69,16 +69,16 @@ export default function Dashboard({
   return (
     <div className="space-y-8 pb-12">
       {/* Welcome Banner with Egypt Post Official Identity */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-950 via-emerald-950 to-slate-900 p-6 md:p-8 text-white shadow-2xl border border-emerald-500/20">
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2.5 flex-wrap">
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-r from-slate-950 via-emerald-950 to-slate-900 p-4 sm:p-6 md:p-8 text-white shadow-2xl border border-emerald-500/20">
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-5 sm:gap-6">
+          <div className="space-y-2.5 sm:space-y-3">
+            <div className="flex items-center gap-2 flex-wrap">
               <EgyptPostLogo 
                 variant="light"
                 showText={false}
-                className="h-9 w-9"
+                className="h-8 w-8 sm:h-9 sm:w-9"
               />
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">
+              <div className="inline-flex items-center gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-[11px] sm:text-xs font-bold border border-emerald-500/30">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 الهيئة القومية للبريد المصري — قطاع الدعم والعمليات
               </div>
@@ -88,32 +88,32 @@ export default function Dashboard({
               </div>
             </div>
 
-            <h2 className="text-2xl md:text-3xl font-black tracking-tight text-white m-0">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-white m-0">
               منظومة حركة وتوزيع سيارات الأسطول والمخازن الإقليمية
             </h2>
-            <p className="text-slate-300 text-sm max-w-2xl leading-relaxed">
+            <p className="text-slate-300 text-xs sm:text-sm max-w-2xl leading-relaxed">
               إدارة ومتابعة تشغيل <strong>{vehicles.length} سيارات</strong> و <strong>{drivers.length} سائقين</strong> مع الربط اللوجستي المتكامل بين المخزن الرئيسي بالتجمع وجراج شبرا والمخازن الإقليمية (القرشية بالغربية • مركز الطويل بالمنيا الجديدة • حي الكوثر بسوهاج).
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
             <button
               onClick={onOpenNewMission}
-              className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold px-5 py-3 rounded-xl shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
+              className="flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold px-4 py-2.5 sm:px-5 sm:py-3 rounded-xl shadow-lg shadow-emerald-600/30 transition-all cursor-pointer text-xs sm:text-sm"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>إسناد مأمورية سريعة</span>
             </button>
             <button
               onClick={() => setActiveTab('warehouses')}
-              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium px-4 py-3 rounded-xl backdrop-blur-sm border border-white/10 transition-all cursor-pointer"
+              className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-xl backdrop-blur-sm border border-white/10 transition-all cursor-pointer text-xs sm:text-sm"
             >
               <MapPin className="w-4 h-4 text-amber-400" />
               <span>خريطة المخازن والمسارات</span>
             </button>
             <button
               onClick={() => setActiveTab('reports')}
-              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium px-4 py-3 rounded-xl backdrop-blur-sm border border-white/10 transition-all cursor-pointer"
+              className="flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-xl backdrop-blur-sm border border-white/10 transition-all cursor-pointer text-xs sm:text-sm"
             >
               <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
               <span>التقارير والإحصائيات</span>

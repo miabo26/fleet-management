@@ -303,7 +303,7 @@
       "id": "user-admin-1",
       "name": "م/ محمد ابراهيم ابوالمعاطى",
       "username": "admin",
-      "password": "admin2026",
+      "password": "15987",
       "role": "admin",
       "roleLabel": "مدير عام المنظومة (تحكم كامل)",
       "phone": "01159700466",
@@ -365,6 +365,64 @@
         "reports_view"
       ],
       "createdAt": "2026-01-01T08:00:00.000Z"
+    }
+  ],
+  "auditLogs": [
+    {
+      "id": "log-seed-1",
+      "timestamp": "2026-10-24T14:07:24.363Z",
+      "actionType": "auth_login",
+      "actionLabel": "تسجيل دخول معتمد للمنظومة",
+      "entity": "auth",
+      "entityId": "user-admin-1",
+      "details": "قام م/ محمد ابراهيم ابوالمعاطى بتسجيل الدخول إلى منظومة إدارة الحركة وتوزيع الأسطول",
+      "userId": "user-admin-1",
+      "userName": "م/ محمد ابراهيم ابوالمعاطى",
+      "userRole": "admin",
+      "userPhone": "01159700466",
+      "userDepartment": "إدارة الدعم والمتابعة - البريد المصري"
+    },
+    {
+      "id": "log-seed-2",
+      "timestamp": "2026-10-24T15:07:24.367Z",
+      "actionType": "update_vehicle",
+      "actionLabel": "تحديث موقع شاحنة بالأسطول",
+      "entity": "vehicle",
+      "entityId": "veh-box-3",
+      "details": "تم تعديل موقع الشاحنة (صندوق-03) إلى جراج سوهاج وإسنادها للسائق السيد عيد",
+      "userId": "user-admin-1",
+      "userName": "م/ محمد ابراهيم ابوالمعاطى",
+      "userRole": "admin",
+      "userPhone": "01159700466",
+      "userDepartment": "إدارة الدعم والمتابعة - البريد المصري"
+    },
+    {
+      "id": "log-seed-3",
+      "timestamp": "2026-10-24T16:07:24.367Z",
+      "actionType": "create_mission",
+      "actionLabel": "إسناد مأمورية جديدة",
+      "entity": "mission",
+      "entityId": "ms-1",
+      "details": "تم إسناد مأمورية شحن مهمات بريدية رقم (مأمورية-101) إلى مخزن مصر العليا (سوهاج الكوثر) بواسطة السائق محمد رمضان والشاحنة كانتر-01",
+      "userId": "user-dispatch-1",
+      "userName": "مسؤول تشغيل وحركة",
+      "userRole": "dispatcher",
+      "userPhone": "",
+      "userDepartment": "جراج السيارات المركزي - شبرا"
+    },
+    {
+      "id": "log-seed-4",
+      "timestamp": "2026-10-24T17:07:24.367Z",
+      "actionType": "mission_status",
+      "actionLabel": "تحديث حالة مأمورية إلى: على الطريق",
+      "entity": "mission",
+      "entityId": "ms-1",
+      "details": "تم تحريك المأمورية رقم (مأمورية-101) وانطلاق الشاحنة كانتر-01 على طريق سوهاج الصحراوي",
+      "userId": "user-dispatch-1",
+      "userName": "مسؤول تشغيل وحركة",
+      "userRole": "dispatcher",
+      "userPhone": "",
+      "userDepartment": "جراج السيارات المركزي - شبرا"
     }
   ]
 }
