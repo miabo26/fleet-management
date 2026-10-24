@@ -1,0 +1,18 @@
+{
+  "short_name": "أسطول البريد",
+  "name": "بوابة سائقي أسطول البريد المصري",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "/?portal=driver",
+  "background_color": "#020617",
+  "theme_color": "#059669",
+  "display": "standalone",
+  "orientation": "portrait",
+  "dir": "rtl",
+  "lang": "ar"
+}

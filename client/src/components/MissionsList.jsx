@@ -13,12 +13,14 @@ import {
   Calendar, 
   CheckCircle2, 
   Clock, 
-  Navigation,
-  Fuel,
-  ArrowUpDown,
-  Phone,
-  DollarSign
+  Navigation, 
+  Fuel, 
+  ArrowUpDown, 
+  Phone, 
+  DollarSign,
+  MessageCircle
 } from 'lucide-react';
+import { generateWhatsAppMissionUrl } from '../services/api';
 
 export default function MissionsList({ 
   missions = [], 
@@ -276,22 +278,32 @@ export default function MissionsList({
                   </div>
 
                   {/* Mobile Action Buttons */}
-                  <div className="flex items-center gap-2 pt-1">
+                  <div className="flex items-center gap-1.5 pt-1">
                     <button
                       onClick={() => onViewMission(mission)}
-                      className="flex-1 py-2 px-3 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                      className="flex-1 py-2 px-2.5 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
                     >
                       <Eye className="w-3.5 h-3.5" />
-                      <span>التفاصيل والتسوية</span>
+                      <span>التفاصيل</span>
                     </button>
+
+                    <a
+                      href={generateWhatsAppMissionUrl(mission)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-2 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-xs"
+                      title="إرسال بيانات المأمورية للسائق عبر واتساب 📲"
+                    >
+                      <MessageCircle className="w-3.5 h-3.5" />
+                      <span>واتساب</span>
+                    </a>
                     
                     <button
                       onClick={() => onPrintMission(mission)}
-                      className="py-2 px-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
+                      className="py-2 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer transition-colors"
                       title="طباعة إذن التشغيل"
                     >
                       <Printer className="w-3.5 h-3.5" />
-                      <span>طباعة</span>
                     </button>
 
                     <button
@@ -420,6 +432,15 @@ export default function MissionsList({
                           >
                             <Eye className="w-4 h-4" />
                           </button>
+                          <a
+                            href={generateWhatsAppMissionUrl(mission)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="إرسال بيانات المأمورية للسائق عبر واتساب 📲"
+                            className="p-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-600 transition-colors cursor-pointer"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                          </a>
                           <button
                             onClick={() => onPrintMission(mission)}
                             title="طباعة إذن تشغيل المأمورية"

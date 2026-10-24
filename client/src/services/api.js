@@ -322,3 +322,84 @@ export async function downloadBackupFile() {
   a.remove();
   window.URL.revokeObjectURL(url);
 }
+
+// ---------- DRIVER SMART PORTAL APIS ---------- //
+
+export async function fetchDriversPortalList() {
+  const res = await fetch(`${API_BASE}/driver/list`);
+  if (!res.ok) throw new Error('فشل جلب قائمة السائقين');
+  return res.json();
+}
+
+export async function driverLogin(driverId, phone) {
+  const res = await fetch(`${API_BASE}/driver/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ driverId, phone })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'فشل تسجيل الدخول لبوابة السائق');
+  }
+  const data = await res.json();
+  if (data.token) {
+    localStorage.setItem('fleet_driver_token', data.token);
+    localStorage.setItem('fleet_driver_id', data.driver.id);
+  }
+  return data;
+}
+
+export async function fetchDriverPortalMe(driverId) {
+  const res = await fetch(`${API_BASE}/driver/me/${driverId}`);
+  if (!res.ok) throw new Error('فشل جلب بيانات السائق');
+  return res.json();
+}
+
+export async function updateDriverMissionStatus(missionId, driverId, newStatus, notes = '') {
+  const res = await fetch(`${API_BASE}/driver/update-mission`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ missionId, driverId, newStatus, notes })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'فشل تحديث حالة المأمورية');
+  }
+  return res.json();
+}
+
+export async function reportDriverEmergency(driverId, vehicleId, missionId, issueType, description, location) {
+  const res = await fetch(`${API_BASE}/driver/report-issue`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ driverId, vehicleId, missionId, issueType, description, location })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || 'فشل إرسال البلاغ الطارئ');
+  }
+  return res.json();
+}
+
+// One-Click Free WhatsApp Mission Dispatcher Generator
+export function generateWhatsAppMissionUrl(mission, customPhone = '') {
+  if (!mission) return '#';
+  const targetPhone = customPhone || mission.driverPhone || '';
+  const cleanPhone = targetPhone.replace(/\D/g, '');
+  const egPhone = cleanPhone.startsWith('0') ? '2' + cleanPhone : cleanPhone.startsWith('20') ? cleanPhone : '20' + cleanPhone;
+
+  const text = `السلام عليكم ورحمة الله يا أسطى ${mission.driverName || ''} 🚚
+الهيئة القومية للبريد المصري — إدارة تشغيل وحركة الأسطول
+تم إسناد مأمورية بريدية جديدة لسيادتكم:
+
+📋 رقم المأمورية: ${mission.missionNumber || ''}
+📦 نوع الحمولة: ${mission.cargoType || 'مهمات بريدية'}
+🚛 الشاحنة: ${mission.vehicleCode || ''} (لوحات: ${mission.vehiclePlate || ''})
+📍 خط السير: من ${mission.originName || 'المخزن الرئيسي بالتجمع'} إلى ${mission.destinationName || ''}
+💰 العهدة النقدية: ${mission.cashAdvance || 0} ج.م
+⏱️ مدة الإشغال المقررة: ${mission.occupancyDays || 1} أيام (${mission.schedulePattern || ''})
+
+رافقتكم السلامة — إدارة الدعم والحركة (م/ محمد ابراهيم ابوالمعاطى: 01159700466)`;
+
+  return `https://wa.me/${egPhone}?text=${encodeURIComponent(text)}`;
+}

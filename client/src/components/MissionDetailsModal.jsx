@@ -11,14 +11,16 @@ import {
   Fuel, 
   FileText, 
   Printer, 
-  Save,
-  DollarSign,
-  Gauge,
-  TrendingUp,
-  AlertTriangle,
-  Flame
+  Save, 
+  DollarSign, 
+  Gauge, 
+  TrendingUp, 
+  AlertTriangle, 
+  Flame,
+  MessageCircle
 } from 'lucide-react';
 import { calculateFuelEfficiencyMetrics, FUEL_BENCHMARKS } from '../utils/fuelUtils';
+import { generateWhatsAppMissionUrl } from '../services/api';
 
 export default function MissionDetailsModal({ 
   mission, 
@@ -122,12 +124,22 @@ export default function MissionDetailsModal({
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <a
+              href={generateWhatsAppMissionUrl(formData)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-md shadow-emerald-600/30 cursor-pointer"
+              title="إرسال بيانات المأمورية للسائق عبر واتساب 📲"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">إرسال واتساب للسائق</span>
+            </a>
             <button
               onClick={() => onPrint(formData)}
               className="flex items-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer"
             >
               <Printer className="w-4 h-4" />
-              <span>طباعة إذن التشغيل</span>
+              <span className="hidden sm:inline">طباعة إذن التشغيل</span>
             </button>
             <button
               onClick={onClose}

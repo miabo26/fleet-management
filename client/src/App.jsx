@@ -10,6 +10,7 @@ import ReportsCenter from './components/ReportsCenter';
 import MaintenanceLogs from './components/MaintenanceLogs';
 import UsersManagement from './components/UsersManagement';
 import AuditLogs from './components/AuditLogs';
+import DriverPortal from './components/DriverPortal';
 import LoginScreen from './components/LoginScreen';
 import NewMissionModal from './components/NewMissionModal';
 import MissionDetailsModal from './components/MissionDetailsModal';
@@ -124,12 +125,27 @@ export default function App() {
     await loadData();
   };
 
+  const handleDriverLogin = (driverRes) => {
+    const driverUser = {
+      id: driverRes.driver.id,
+      name: driverRes.driver.name,
+      role: 'driver',
+      roleLabel: 'سائق بالأسطول',
+      phone: driverRes.driver.phone,
+      driverData: driverRes
+    };
+    localStorage.setItem('fleet_auth_user', JSON.stringify(driverUser));
+    setCurrentUser(driverUser);
+  };
+
   const handleLogout = async () => {
     try {
       await logoutUser();
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
+      localStorage.removeItem('fleet_driver_token');
+      localStorage.removeItem('fleet_driver_id');
       setCurrentUser(null);
       setActiveTab('dashboard');
     }
@@ -297,7 +313,20 @@ export default function App() {
   if (!currentUser) {
     return (
       <LoginScreen 
-        onLoginSuccess={handleLogin} 
+        onLoginSuccess={handleLogin}
+        onDriverLoginSuccess={handleDriverLogin}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
+    );
+  }
+
+  // If logged in as driver, display the dedicated Driver Smart Portal
+  if (currentUser.role === 'driver') {
+    return (
+      <DriverPortal
+        driverData={currentUser.driverData}
+        onLogout={handleLogout}
         theme={theme}
         onToggleTheme={toggleTheme}
       />

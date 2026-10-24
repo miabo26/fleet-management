@@ -693,6 +693,236 @@ app.delete('/api/drivers/:id', (req, res) => {
   res.json({ message: 'تم حذف السائق بنجاح' });
 });
 
+// ---------- DRIVER PORTAL APIS (بوابة السائق الذكية) ---------- //
+
+// 1. Get simplified drivers list for mobile portal quick selection
+app.get('/api/driver/list', (req, res) => {
+  const db = readDb();
+  const driversList = (db.drivers || []).map(d => ({
+    id: d.id,
+    name: d.name,
+    role: d.role,
+    phone: d.phone,
+    vehicleCategory: d.vehicleCategory,
+    status: d.status
+  }));
+  res.json(driversList);
+});
+
+// 2. Driver Login (by driver ID or phone)
+app.post('/api/driver/login', (req, res) => {
+  const db = readDb();
+  const { driverId, phone } = req.body;
+
+  let driver = null;
+  if (driverId) {
+    driver = db.drivers.find(d => d.id === driverId);
+  } else if (phone && phone.trim()) {
+    const cleanPhone = phone.trim().replace(/\D/g, '');
+    driver = db.drivers.find(d => d.phone && d.phone.replace(/\D/g, '') === cleanPhone);
+  }
+
+  if (!driver) {
+    return res.status(404).json({ error: 'لم يتم العثور على سائق مسجل بهذه البيانات' });
+  }
+
+  // Find assigned vehicle
+  let assignedVehicle = null;
+  if (driver.assignedVehicleId) {
+    assignedVehicle = db.vehicles.find(v => v.id === driver.assignedVehicleId);
+  }
+  if (!assignedVehicle) {
+    assignedVehicle = db.vehicles.find(v => v.driverId === driver.id);
+  }
+  if (!assignedVehicle) {
+    assignedVehicle = db.vehicles.find(v => v.type === driver.vehicleCategory);
+  }
+
+  // Find active mission
+  const activeMission = db.missions.find(m => 
+    m.driverId === driver.id && ['assigned', 'loading', 'on_road'].includes(m.status)
+  ) || null;
+
+  // Match destination warehouse for Google Maps navigation
+  let destinationWarehouse = null;
+  if (activeMission) {
+    destinationWarehouse = db.warehouses.find(w => w.id === activeMission.destinationId) || null;
+  }
+
+  // Recent completed missions for driver
+  const recentMissions = (db.missions || [])
+    .filter(m => m.driverId === driver.id && m.status === 'completed')
+    .slice(0, 5);
+
+  const token = generateToken({
+    id: driver.id,
+    name: driver.name,
+    role: 'driver'
+  });
+
+  recordAuditLog(db, {
+    actionType: 'driver_login',
+    actionLabel: 'تسجيل دخول السائق لبوابته الذكية',
+    entity: 'driver',
+    entityId: driver.id,
+    details: `قام السائق (${driver.name}) بفتح بوابة السائق الذكية على الهاتف المحمول`,
+    user: {
+      id: driver.id,
+      name: driver.name,
+      role: 'driver',
+      phone: driver.phone || '',
+      department: 'طاقم سائقي الحركة'
+    }
+  });
+  writeDb(db);
+
+  res.json({
+    token,
+    driver,
+    assignedVehicle,
+    activeMission: activeMission ? {
+      ...activeMission,
+      destinationGoogleMapsUrl: destinationWarehouse?.googleMapsUrl || (destinationWarehouse?.coordinates ? `https://www.google.com/maps/search/?api=1&query=${destinationWarehouse.coordinates[0]},${destinationWarehouse.coordinates[1]}` : null),
+      destinationAddress: destinationWarehouse?.address || ''
+    } : null,
+    recentMissions,
+    supervisor: {
+      name: 'م/ محمد ابراهيم ابوالمعاطى',
+      title: 'مدير ادارة الدعم والمتابعة — البريد المصري',
+      phone: '01159700466',
+      whatsappUrl: 'https://wa.me/201159700466'
+    }
+  });
+});
+
+// 3. Driver Live Status & Mission Fetch
+app.get('/api/driver/me/:id', (req, res) => {
+  const db = readDb();
+  const driver = db.drivers.find(d => d.id === req.params.id);
+  if (!driver) return res.status(404).json({ error: 'السائق غير موجود' });
+
+  let assignedVehicle = db.vehicles.find(v => v.driverId === driver.id || v.id === driver.assignedVehicleId || v.type === driver.vehicleCategory);
+  const activeMission = db.missions.find(m => m.driverId === driver.id && ['assigned', 'loading', 'on_road'].includes(m.status)) || null;
+
+  let destinationWarehouse = null;
+  if (activeMission) {
+    destinationWarehouse = db.warehouses.find(w => w.id === activeMission.destinationId) || null;
+  }
+
+  const recentMissions = (db.missions || []).filter(m => m.driverId === driver.id && m.status === 'completed').slice(0, 5);
+
+  res.json({
+    driver,
+    assignedVehicle,
+    activeMission: activeMission ? {
+      ...activeMission,
+      destinationGoogleMapsUrl: destinationWarehouse?.googleMapsUrl || (destinationWarehouse?.coordinates ? `https://www.google.com/maps/search/?api=1&query=${destinationWarehouse.coordinates[0]},${destinationWarehouse.coordinates[1]}` : null),
+      destinationAddress: destinationWarehouse?.address || ''
+    } : null,
+    recentMissions,
+    supervisor: {
+      name: 'م/ محمد ابراهيم ابوالمعاطى',
+      title: 'مدير ادارة الدعم والمتابعة',
+      phone: '01159700466',
+      whatsappUrl: 'https://wa.me/201159700466'
+    }
+  });
+});
+
+// 4. Driver updates their active mission status
+app.post('/api/driver/update-mission', (req, res) => {
+  const db = readDb();
+  const { missionId, driverId, newStatus, notes } = req.body;
+
+  const missionIndex = db.missions.findIndex(m => m.id === missionId && m.driverId === driverId);
+  if (missionIndex === -1) {
+    return res.status(404).json({ error: 'المأمورية غير موجودة أو غير مسندة لهذا السائق' });
+  }
+
+  const driver = db.drivers.find(d => d.id === driverId);
+  const mission = db.missions[missionIndex];
+  const oldStatus = mission.status;
+  mission.status = newStatus;
+
+  if (newStatus === 'delivered') {
+    mission.actualArrival = new Date().toISOString();
+  }
+  if (notes) {
+    mission.driverNotes = (mission.driverNotes ? mission.driverNotes + '\n' : '') + notes;
+  }
+
+  syncFleetStatus(db);
+
+  const statusArabic = {
+    on_road: 'على الطريق 🚚',
+    delivered: 'تم الوصول والتسليم بالموقع 📦',
+    completed: 'مكتملة ومغلقة'
+  };
+
+  recordAuditLog(db, {
+    actionType: 'driver_mission_update',
+    actionLabel: `تحديث مأمورية من السائق: ${statusArabic[newStatus] || newStatus}`,
+    entity: 'mission',
+    entityId: mission.id,
+    details: `قام السائق (${driver ? driver.name : 'سائق'}) بتحديث حالة المأمورية رقم (${mission.missionNumber}) إلى "${statusArabic[newStatus] || newStatus}"`,
+    user: {
+      id: driver?.id || 'driver',
+      name: driver?.name || 'سائق بالأسطول',
+      role: 'driver',
+      phone: driver?.phone || '',
+      department: 'طاقم سائقي الحركة'
+    }
+  });
+
+  writeDb(db);
+  res.json({ message: 'تم تحديث حالة المأمورية بنجاح', mission });
+});
+
+// 5. Driver Emergency Issue / Breakdown Report
+app.post('/api/driver/report-issue', (req, res) => {
+  const db = readDb();
+  const { driverId, vehicleId, missionId, issueType, description, location } = req.body;
+
+  const driver = db.drivers.find(d => d.id === driverId);
+  const vehicle = db.vehicles.find(v => v.id === vehicleId);
+
+  const emergencyRecord = {
+    id: `issue-${Date.now()}`,
+    timestamp: new Date().toISOString(),
+    driverId,
+    driverName: driver ? driver.name : '',
+    driverPhone: driver ? driver.phone : '',
+    vehicleId,
+    vehicleCode: vehicle ? vehicle.code : '',
+    vehiclePlate: vehicle ? vehicle.plateNumber : '',
+    missionId,
+    issueType: issueType || 'عطل مفاجئ',
+    description: description || 'تم الإبلاغ عن مشكلة أثناء السير',
+    location: location || 'على الطريق'
+  };
+
+  if (!db.driverEmergencyIssues) db.driverEmergencyIssues = [];
+  db.driverEmergencyIssues.unshift(emergencyRecord);
+
+  recordAuditLog(db, {
+    actionType: 'driver_emergency',
+    actionLabel: '⚠️ بلاغ طارئ / عطل على الطريق من السائق',
+    entity: 'vehicle',
+    entityId: vehicleId || driverId,
+    details: `أبلغ السائق (${driver ? driver.name : ''}) عن (${emergencyRecord.issueType}) للشاحنة (${vehicle ? vehicle.code : ''}): ${emergencyRecord.description} - الموقع: ${emergencyRecord.location}`,
+    user: {
+      id: driver?.id || 'driver',
+      name: driver?.name || 'سائق',
+      role: 'driver',
+      phone: driver?.phone || '',
+      department: 'طاقم سائقي الحركة'
+    }
+  });
+
+  writeDb(db);
+  res.json({ message: 'تم استلام البلاغ الطارئ وإشعار إدارة الحركة فوراً', issue: emergencyRecord });
+});
+
 // ---------- VEHICLES (With dynamic expansion) ---------- //
 
 // ADD Vehicle

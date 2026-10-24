@@ -369,6 +369,20 @@
   ],
   "auditLogs": [
     {
+      "id": "log-1792869130814-566",
+      "timestamp": "2026-10-24T19:12:10.814Z",
+      "actionType": "driver_login",
+      "actionLabel": "تسجيل دخول السائق لبوابته الذكية",
+      "entity": "driver",
+      "entityId": "drv-1",
+      "details": "قام السائق (محمد رمضان) بفتح بوابة السائق الذكية على الهاتف المحمول",
+      "userId": "drv-1",
+      "userName": "محمد رمضان",
+      "userRole": "driver",
+      "userPhone": "",
+      "userDepartment": "طاقم سائقي الحركة"
+    },
+    {
       "id": "log-1792867978561-650",
       "timestamp": "2026-10-24T18:52:58.561Z",
       "actionType": "backup_snapshot",
